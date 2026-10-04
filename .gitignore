@@ -1,0 +1,6 @@
+**/target/
+.idea/
+*.iml
+.env
+verification.log
+builder-verification.log

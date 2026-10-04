@@ -1,0 +1,465 @@
+openapi: 3.0.3
+info:
+  title: Space Marine Collection API
+  description: |
+    Набор веб-сервисов для управления коллекцией объектов класса `SpaceMarine`.
+
+    **Первый сервис** реализует базовые и дополнительные операции над коллекцией
+    объектов `SpaceMarine` в соответствии с подходом RESTful:
+    * добавление, получение, обновление и удаление элементов коллекции;
+    * получение массива элементов с поддержкой сортировки, фильтрации и постраничного вывода;
+    * дополнительные операции: удаление по полю `health`, удаление по полю `weaponType`,
+      получение элемента с максимальным значением поля `name`.
+
+    **Второй сервис** (расположен на базовом URL `/starship`) реализует операции,
+    связанные с вызовом API первого сервиса:
+    * погрузка выбранного десантника на корабль;
+    * высадка всех десантников с корабля.
+
+    Все объекты коллекции передаются в формате **JSON**.
+  version: 1.0.0
+  contact:
+    name: Space Marine Team
+security: []
+servers:
+  - url: /api/v1/
+    description: Корень API
+tags:
+  - name: Space Marines Collection
+    description: Операции первого веб-сервиса по управлению коллекцией объектов SpaceMarine
+  - name: Starship
+    description: Операции второго веб-сервиса по управлению десантниками на корабле
+paths:
+  /space-marines:
+    get:
+      tags:
+        - Space Marines Collection
+      summary: Получить массив объектов коллекции
+      operationId: getSpaceMarines
+      description: Возвращает страницу объектов коллекции с фильтрацией, сортировкой и пагинацией.
+      parameters:
+        - name: page
+          in: query
+          description: Порядковый номер выводимой страницы (начиная с 0)
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Размер страницы (количество элементов на странице)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: sort
+          in: query
+          description: "Сортировка: поле[,asc|desc], можно несколько раз."
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              example: "health,desc"
+        - name: filter
+          in: query
+          description: "Фильтрация: поле,оператор,значение. Операторы: eq, gt, lt."
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              example: "weaponType,eq,COMBI_FLAMER"
+      responses:
+        "200":
+          description: Успешный ответ. Возвращает страницу выборки объектов коллекции.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageOfSpaceMarine"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+    post:
+      tags:
+        - Space Marines Collection
+      summary: Добавить новый элемент в коллекцию
+      operationId: addSpaceMarine
+      description: Добавляет объект в коллекцию. Поля id и creationDate генерируются автоматически.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpaceMarineInput"
+      responses:
+        "201":
+          description: Элемент успешно добавлен в коллекцию.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceMarine"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+  /space-marines/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Идентификатор объекта SpaceMarine в коллекции
+        schema:
+          type: integer
+          minimum: 1
+    get:
+      tags:
+        - Space Marines Collection
+      summary: Получить элемент коллекции по идентификатору
+      operationId: getSpaceMarineById
+      description: Возвращает объект `SpaceMarine` по его идентификатору.
+      responses:
+        "200":
+          description: Объект найден.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceMarine"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+    put:
+      tags:
+        - Space Marines Collection
+      summary: Обновить элемент коллекции
+      operationId: updateSpaceMarine
+      description: Обновляет объект по идентификатору. Поля id и creationDate менять нельзя.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpaceMarineInput"
+      responses:
+        "200":
+          description: Элемент успешно обновлён.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceMarine"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+    delete:
+      tags:
+        - Space Marines Collection
+      summary: Удалить элемент коллекции
+      operationId: deleteSpaceMarine
+      description: Удаляет объект `SpaceMarine` из коллекции по идентификатору.
+      responses:
+        "204":
+          description: Элемент успешно удалён. Тело ответа отсутствует. Если объект отсутствует, операция всё равно завершается успешно.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /space-marines/health/{health}:
+    delete:
+      tags:
+        - Space Marines Collection
+      summary: Удалить все объекты с заданным значением health
+      operationId: deleteByHealth
+      description: Удаляет все объекты с заданным health и возвращает их количество.
+      parameters:
+        - name: health
+          in: path
+          required: true
+          description: Значение поля health для удаления
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Операция выполнена. Возвращает количество удалённых объектов.
+          content:
+            application/json:
+              schema:
+                type: integer
+                description: Количество удалённых объектов
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /space-marines/weapon/{weaponType}:
+    delete:
+      tags:
+        - Space Marines Collection
+      summary: Удалить один объект с заданным значением weaponType
+      operationId: deleteOneByWeapon
+      description: Удаляет один объект с заданным weaponType.
+      parameters:
+        - name: weaponType
+          in: path
+          required: true
+          description: Значение поля weaponType
+          schema:
+            $ref: "#/components/schemas/Weapon"
+      responses:
+        "204":
+          description: Успешное удаление. Тело ответа отсутствует. Если подходящих объектов нет, операция всё равно завершается успешно.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /space-marines/name/max:
+    get:
+      tags:
+        - Space Marines Collection
+      summary: Получить объект с максимальным значением поля name
+      operationId: getMaxName
+      description: Возвращает объект с максимальным значением name.
+      responses:
+        "200":
+          description: Объект с максимальным значением name.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceMarine"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+
+components:
+  schemas:
+    SpaceMarine:
+      type: object
+      description: Объект коллекции — десантник космического десанта
+      required:
+        - id
+        - name
+        - coordinates
+        - creationDate
+        - health
+        - weaponType
+        - chapter
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+          readOnly: true
+          description: Уникальный идентификатор. Не может быть null, больше 0, генерируется автоматически.
+        name:
+          type: string
+          minLength: 1
+          description: Название. Не может быть null, строка не может быть пустой.
+        coordinates:
+          $ref: "#/components/schemas/Coordinates"
+        creationDate:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Дата создания. Не может быть null, генерируется автоматически.
+        health:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Здоровье. Должно быть больше 0.
+        achievements:
+          type: string
+          nullable: true
+          description: Достижения. Может быть null.
+        weaponType:
+          $ref: "#/components/schemas/Weapon"
+        meleeWeapon:
+          $ref: "#/components/schemas/MeleeWeapon"
+        chapter:
+          $ref: "#/components/schemas/Chapter"
+    SpaceMarineInput:
+      type: object
+      description: Входные данные для создания или обновления объекта. Поля id и creationDate не передаются.
+      required:
+        - name
+        - coordinates
+        - health
+        - weaponType
+        - chapter
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Название. Не может быть null, строка не может быть пустой.
+        coordinates:
+          $ref: "#/components/schemas/Coordinates"
+        health:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Здоровье. Должно быть больше 0.
+        achievements:
+          type: string
+          nullable: true
+          description: Достижения. Может быть null.
+        weaponType:
+          $ref: "#/components/schemas/Weapon"
+        meleeWeapon:
+          $ref: "#/components/schemas/MeleeWeapon"
+        chapter:
+          $ref: "#/components/schemas/Chapter"
+    Coordinates:
+      type: object
+      description: Координаты десантника
+      required:
+        - x
+        - y
+      properties:
+        x:
+          type: number
+          format: double
+          description: Координата x. Не может быть null.
+        y:
+          type: integer
+          format: int32
+          exclusiveMinimum: true
+          minimum: -630
+          description: Координата y. Должно быть больше -630, не может быть null.
+    Chapter:
+      type: object
+      description: Глава ордена, к которой принадлежит десантник
+      required:
+        - name
+        - world
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Название главы. Не может быть null, строка не может быть пустой.
+        parentLegion:
+          type: string
+          nullable: true
+          description: Родительский легион. Может быть null.
+        world:
+          type: string
+          description: Мир. Не может быть null.
+    Weapon:
+      type: string
+      description: Тип дальнобойного оружия
+      enum:
+        - COMBI_FLAMER
+        - GRENADE_LAUNCHER
+        - HEAVY_FLAMER
+    MeleeWeapon:
+      type: string
+      nullable: true
+      description: Тип оружия ближнего боя
+      enum:
+        - CHAIN_SWORD
+        - CHAIN_AXE
+        - POWER_BLADE
+        - POWER_FIST
+    PageOfSpaceMarine:
+      type: object
+      description: Страница выборки объектов коллекции
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          description: Элементы текущей страницы
+          items:
+            $ref: "#/components/schemas/SpaceMarine"
+        page:
+          type: integer
+          description: Порядковый номер текущей страницы (начиная с 0)
+        size:
+          type: integer
+          description: Размер страницы
+        totalElements:
+          type: integer
+          description: Общее количество элементов в коллекции, удовлетворяющих фильтру
+        totalPages:
+          type: integer
+          description: Общее количество страниц
+    ApiError:
+      type: object
+      description: Структура ошибки
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: integer
+          description: Код состояния HTTP
+        message:
+          type: string
+          description: Текстовое описание ошибки
+        field:
+          type: string
+          nullable: true
+          description: Поле, нарушающее ограничение целостности (при наличии)
+  responses:
+    BadRequest:
+      description: "Некорректный запрос: тело или параметры не соответствуют схеме."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    NotFound:
+      description: Запрашиваемый ресурс не найден.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    MethodNotAllowed:
+      description: Метод не поддерживается для данного URL.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    Conflict:
+      description: "Конфликт: нарушена уникальность или операция невозможна из-за состояния."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    UnsupportedMediaType:
+      description: "Не поддерживаемый тип содержимого. Ожидается application/json."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    UnprocessableEntity:
+      description: Запрос корректен, но нарушает ограничения целостности класса.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"

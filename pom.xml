@@ -1,0 +1,1 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion><groupId>soa.lab2</groupId><artifactId>lab2</artifactId><version>1.0.0</version><packaging>pom</packaging><modules><module>collection-service</module><module>starship-service</module></modules></project>
