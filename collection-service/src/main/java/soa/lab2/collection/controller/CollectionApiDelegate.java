@@ -7,6 +7,7 @@ import soa.lab2.collection.controller.generated.SpaceMarinesCollectionApiDelegat
 import soa.lab2.collection.dto.PageOfSpaceMarineDTO;
 import soa.lab2.collection.dto.SpaceMarineDTO;
 import soa.lab2.collection.dto.SpaceMarineInputDTO;
+import soa.lab2.collection.dto.SpaceMarinePatchInputDTO;
 import soa.lab2.collection.dto.WeaponDTO;
 import soa.lab2.collection.mapper.SpaceMarineMapper;
 import soa.lab2.collection.model.Weapon;
@@ -15,6 +16,10 @@ import soa.lab2.collection.service.CollectionService;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 @Component
 public class CollectionApiDelegate implements SpaceMarinesCollectionApiDelegate {
@@ -42,6 +47,15 @@ public class CollectionApiDelegate implements SpaceMarinesCollectionApiDelegate 
     @Override
     public ResponseEntity<SpaceMarineDTO> updateSpaceMarine(Integer id, SpaceMarineInputDTO input) {
         return ResponseEntity.ok(mapper.toDto(service.update(id, mapper.toModel(input))));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<SpaceMarineDTO> patchSpaceMarine(Integer id, SpaceMarinePatchInputDTO input) {
+        Object fields = RequestContextHolder.currentRequestAttributes()
+                .getAttribute(PatchBodyFields.ATTRIBUTE, RequestAttributes.SCOPE_REQUEST);
+        Set<String> providedFields = fields instanceof Set<?> ? (Set<String>) fields : Set.of();
+        return ResponseEntity.ok(mapper.toDto(service.patch(id, mapper.toPatch(input, providedFields))));
     }
 
     @Override

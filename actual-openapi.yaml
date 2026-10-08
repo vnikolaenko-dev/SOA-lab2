@@ -408,7 +408,7 @@ components:
   schemas:
     SpaceMarine:
       type: object
-      description: Объект коллекции — десантник космического десанта
+      description: Объект коллекции - десантник космического десанта
       required:
         - id
         - name

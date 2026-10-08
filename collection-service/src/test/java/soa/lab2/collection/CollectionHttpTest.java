@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import soa.lab2.collection.controller.CollectionApiDelegate;
 import soa.lab2.collection.controller.generated.SpaceMarinesCollectionApiController;
 import soa.lab2.collection.dto.SpaceMarineDTO;
+import soa.lab2.collection.dto.SpaceMarinePatchInputDTO;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -38,10 +39,21 @@ class CollectionHttpTest {
     }
 
     @Test
-    void unsupportedMethodUsesContractError() throws Exception {
-        mvc.perform(patch("/api/v1/space-marines/1")).andExpect(status().isMethodNotAllowed())
-                .andExpect(jsonPath("$.status").value(405))
-                .andExpect(jsonPath("$.message").value("HTTP-метод не поддерживается для данного адреса"));
+    void patchRouteUsesDelegate() throws Exception {
+        when(service.patchSpaceMarine(eq(1), any(SpaceMarinePatchInputDTO.class)))
+                .thenReturn(ResponseEntity.ok(new SpaceMarineDTO().id(1L).name("Marine").health(80)));
+        mvc.perform(patch("/api/v1/space-marines/1").contentType("application/json")
+                        .content("{\"health\":80}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.health").value(80));
+        verify(service).patchSpaceMarine(eq(1), any(SpaceMarinePatchInputDTO.class));
+    }
+
+    @Test
+    void patchRejectsInvalidHealth() throws Exception {
+        mvc.perform(patch("/api/v1/space-marines/1").contentType("application/json")
+                        .content("{\"health\":0}"))
+                .andExpect(status().isBadRequest());
+        verify(service, never()).patchSpaceMarine(any(), any());
     }
 
     @Test

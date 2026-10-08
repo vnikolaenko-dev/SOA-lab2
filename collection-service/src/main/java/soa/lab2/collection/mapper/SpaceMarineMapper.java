@@ -6,12 +6,16 @@ import soa.lab2.collection.dto.CoordinatesDTO;
 import soa.lab2.collection.dto.MeleeWeaponDTO;
 import soa.lab2.collection.dto.SpaceMarineDTO;
 import soa.lab2.collection.dto.SpaceMarineInputDTO;
+import soa.lab2.collection.dto.SpaceMarinePatchInputDTO;
 import soa.lab2.collection.dto.WeaponDTO;
 import soa.lab2.collection.model.Chapter;
 import soa.lab2.collection.model.Coordinates;
 import soa.lab2.collection.model.MeleeWeapon;
 import soa.lab2.collection.model.SpaceMarine;
+import soa.lab2.collection.model.SpaceMarinePatch;
 import soa.lab2.collection.model.Weapon;
+
+import java.util.Set;
 
 @Component
 public class SpaceMarineMapper {
@@ -39,6 +43,29 @@ public class SpaceMarineMapper {
                 .withMeleeWeapon(input.getMeleeWeapon() == null ? null :
                         MeleeWeapon.valueOf(input.getMeleeWeapon().getValue()))
                 .withChapter(chapter).build();
+    }
+
+    public SpaceMarinePatch toPatch(SpaceMarinePatchInputDTO input, Set<String> providedFields) {
+        for (String field : Set.of("coordinates", "health", "weaponType")) {
+            if (providedFields.contains(field) && switch (field) {
+                case "coordinates" -> input.getCoordinates() == null;
+                case "health" -> input.getHealth() == null;
+                default -> input.getWeaponType() == null;
+            }) {
+                throw new IllegalArgumentException("Поле " + field + " не может быть null");
+            }
+        }
+        Coordinates coordinates = null;
+        if (input.getCoordinates() != null) {
+            if (!Double.isFinite(input.getCoordinates().getX()))
+                throw new IllegalArgumentException("Координата coordinates.x должна быть конечным числом");
+            coordinates = Coordinates.builder().withX(input.getCoordinates().getX())
+                    .withY(input.getCoordinates().getY()).build();
+        }
+        return new SpaceMarinePatch(coordinates, input.getHealth(),
+                input.getWeaponType() == null ? null : Weapon.valueOf(input.getWeaponType().getValue()),
+                input.getMeleeWeapon() == null ? null : MeleeWeapon.valueOf(input.getMeleeWeapon().getValue()),
+                providedFields.contains("meleeWeapon"));
     }
 
     public SpaceMarineDTO toDto(SpaceMarine model) {

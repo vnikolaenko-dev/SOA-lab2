@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import soa.lab2.starship.mapper.StarshipMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,6 +27,8 @@ class BoardingRepositoryTest {
         assertNotNull(boarding.getLoadedAt());
         repository.saveAndFlush(mapper.toBoarding(3, 8));
         assertTrue(repository.existsByMarineId(7L));
+        assertEquals(1, repository.findAllByStarshipIdOrderByIdAsc(2L).size());
+        assertEquals(7L, repository.findAllByStarshipIdOrderByIdAsc(2L).getFirst().getMarineId());
         assertEquals(1, repository.deleteAllByStarshipId(2L));
         assertFalse(repository.existsByMarineId(7L));
         assertTrue(repository.existsByMarineId(8L));
@@ -36,5 +39,19 @@ class BoardingRepositoryTest {
     void databaseConstraintPreventsDoubleBoarding() {
         repository.saveAndFlush(mapper.toBoarding(2, 7));
         assertThrows(DataIntegrityViolationException.class, () -> repository.saveAndFlush(mapper.toBoarding(3, 7)));
+    }
+
+    @Test
+    void listsDistinctStarshipIdsWithPagination() {
+        repository.saveAndFlush(mapper.toBoarding(3, 7));
+        repository.saveAndFlush(mapper.toBoarding(1, 8));
+        repository.saveAndFlush(mapper.toBoarding(3, 9));
+        repository.saveAndFlush(mapper.toBoarding(2, 10));
+
+        var first = repository.findStarshipIds(PageRequest.of(0, 2));
+        assertEquals(3, first.getTotalElements());
+        assertEquals(2, first.getTotalPages());
+        assertEquals(java.util.List.of(1L, 2L), first.getContent());
+        assertEquals(java.util.List.of(3L), repository.findStarshipIds(PageRequest.of(1, 2)).getContent());
     }
 }

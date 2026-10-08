@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import soa.lab2.collection.model.SpaceMarine;
+import soa.lab2.collection.model.SpaceMarinePatch;
 import soa.lab2.collection.model.Weapon;
 import soa.lab2.collection.repository.SpaceMarineRepository;
 import soa.lab2.collection.repository.SpaceMarineSpecifications;
@@ -33,8 +34,8 @@ public class CollectionService {
     }
 
     private SpaceMarine findMarineById(long id) {
-        return repository.findById(id).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.NOT_FOUND, "Десантник не найден"));
+        return repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Десантник не найден"));
     }
 
     public SpaceMarine update(long id, SpaceMarine changes) {
@@ -47,6 +48,17 @@ public class CollectionService {
                 .withWeaponType(changes.getWeaponType())
                 .withMeleeWeapon(changes.getMeleeWeapon())
                 .withChapter(changes.getChapter())
+                .build();
+        return repository.save(updated);
+    }
+
+    public SpaceMarine patch(long id, SpaceMarinePatch changes) {
+        SpaceMarine marine = findMarineById(id);
+        SpaceMarine updated = marine.toBuilder()
+                .withCoordinates(changes.coordinates() == null ? marine.getCoordinates() : changes.coordinates())
+                .withHealth(changes.health() == null ? marine.getHealth() : changes.health())
+                .withWeaponType(changes.weaponType() == null ? marine.getWeaponType() : changes.weaponType())
+                .withMeleeWeapon(changes.meleeWeaponProvided() ? changes.meleeWeapon() : marine.getMeleeWeapon())
                 .build();
         return repository.save(updated);
     }
@@ -65,8 +77,8 @@ public class CollectionService {
 
     @Transactional(readOnly = true)
     public SpaceMarine getMaxName() {
-        return repository.findFirstByOrderByNameDescIdAsc().orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.NOT_FOUND, "Коллекция пуста"));
+        return repository.findFirstByOrderByNameDescIdAsc()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Коллекция пуста"));
     }
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
@@ -74,7 +86,7 @@ public class CollectionService {
         int p = page == null ? 0 : page;
         int s = size == null ? 10 : size;
         if (p < 0 || s < 1 || s > 100)
-            throw new IllegalArgumentException("Номер страницы должен быть неотрицательным, размер — от 1 до 100");
+            throw new IllegalArgumentException("Номер страницы должен быть неотрицательным, размер - от 1 до 100");
         return repository.findAll(SpaceMarineSpecifications.filters(filter),
                 PageRequest.of(p, s, SpaceMarineSpecifications.sort(sort)));
     }

@@ -3,16 +3,16 @@
 Два самостоятельных Spring Boot 3.5.11 / Java 21 / Spring MVC REST приложения:
 
 | Проект             | Порт | Назначение                                                                |
-|--------------------|------|---------------------------------------------------------------------------|
+| ------------------ | ---- | ------------------------------------------------------------------------- |
 | collection-service | 8081 | CRUD SpaceMarine, фильтры, сортировка, пагинация, дополнительные операции |
-| starship-service   | 8082 | Посадка десантника и высадка всех с корабля                               |
+| starship-service   | 8082 | Посадка, высадка, просмотр экипажа и список кораблей                      |
 
 ## Contract First
 
-Контракт исходного SpaceMarine разделён по путям. Источник для каждого проекта —
+Контракт исходного SpaceMarine разделён по путям. Источник для каждого проекта -
 `src/main/resources/static/openapi.yaml`. Maven OpenAPI Generator в фазе `generate-sources` генерирует Spring MVC
 контроллеры, API-интерфейсы, интерфейсы делегатов и DTO с Jakarta Validation в `target/generated-sources/openapi`.
-Контроллеры и API генерируются в пакет `controller.generated`, DTO — в `dto`. Компоненты
+Контроллеры и API генерируются в пакет `controller.generated`, DTO - в `dto`. Компоненты
 `controller.CollectionApiDelegate` / `controller.StarshipApiDelegate` реализуют сгенерированные интерфейсы делегатов и
 вызывают сервисы. Сгенерированные файлы редактировать не нужно. Исходный проект SpaceMarine не изменён.
 
@@ -36,7 +36,7 @@
 CREATE DATABASE space_marine;
 ```
 
-По умолчанию оба проекта подключаются к `jdbc:postgresql://localhost:5432/space_marine`, пользователь — `root`. Пароль в
+По умолчанию оба проекта подключаются к `jdbc:postgresql://localhost:5432/space_marine`, пользователь - `root`. Пароль в
 репозитории не хранится: перед запуском обязательно задайте `DB_PASSWORD`. Для своей установки задайте действительного
 пользователя PostgreSQL и его пароль через переменные окружения PowerShell:
 
@@ -48,7 +48,7 @@ $env:DB_PASSWORD = 'ваш пароль'
 Также поддерживаются `DB_URL`, `PORT`, а для второго сервиса `COLLECTION_URL` (по умолчанию
 `http://localhost:8081/api/v1`). Flyway создаёт схемы `collection` и `starship` и таблицы автоматически. Пользователю БД
 нужны права создавать схемы и таблицы. Первый сервис хранит десантников в обычных столбцах через JPA-сущность
-`model.SpaceMarine`: `Coordinates` и `Chapter` являются встраиваемыми объектами `@Embeddable`, типы оружия — enum.
+`model.SpaceMarine`: `Coordinates` и `Chapter` являются встраиваемыми объектами `@Embeddable`, типы оружия - enum.
 Второй хранит JPA-сущности `model.Boarding` в собственной схеме и обращается к первому через `client.CollectionClient`,
 не читая его таблицы. Полученный десантник представлен объектом `model.SpaceMarine` (снимок удалённого объекта).
 
@@ -59,19 +59,19 @@ $env:DB_PASSWORD = 'ваш пароль'
 ## Пакеты и слои
 
 ```text
-controller/generated  — сгенерированные из OpenAPI контроллеры, API и интерфейсы делегатов
-controller            — реализация делегатов, HTTP-ответы и обработка ошибок
-dto                   — сгенерированные DTO с валидацией
-mapper                — преобразование DTO ↔ model
-model                 — JPA-сущности, встраиваемые объекты, enum и удалённые модели
-service               — бизнес-логика и транзакции, работа с объектами model
-repository            — Spring Data JpaRepository, JPA Specifications
-client                — HTTP-клиент первого сервиса (в starship-service)
+controller/generated  - сгенерированные из OpenAPI контроллеры, API и интерфейсы делегатов
+controller            - реализация делегатов, HTTP-ответы и обработка ошибок
+dto                   - сгенерированные DTO с валидацией
+mapper                - преобразование DTO ↔ model
+model                 - JPA-сущности, встраиваемые объекты, enum и удалённые модели
+service               - бизнес-логика и транзакции, работа с объектами model
+repository            - Spring Data JpaRepository, JPA Specifications
+client                - HTTP-клиент первого сервиса (в starship-service)
 ```
 
 Цепочка обработки запроса: сгенерированный контроллер → делегат → mapper/service → repository → Hibernate → PostgreSQL.
 Сервисы не зависят от DTO или HttpServletRequest и не формируют HTTP-ответы. Фильтрация реализована через
-`Specification` / JPA Criteria, сортировка и пагинация — через `Sort` / `PageRequest`. Прямых SQL-запросов в Java-коде
+`Specification` / JPA Criteria, сортировка и пагинация - через `Sort` / `PageRequest`. Прямых SQL-запросов в Java-коде
 нет; SQL используется в миграциях Flyway. Отдельные bulk-delete операции репозиториев используют JPQL по сущностям.
 
 Документация: [Spring Data JPA Specifications](https://docs.spring.io/spring-data/jpa/reference/jpa/specifications.html), [Hibernate ORM](https://docs.jboss.org/hibernate/orm/6.6/introduction/html_single/Hibernate_Introduction.html).
@@ -79,7 +79,7 @@ client                — HTTP-клиент первого сервиса (в st
 ## Проверки
 
 Модели используют Lombok `@Builder(toBuilder = true, setterPrefix = "with")` и `@With`. Создание выполняется через
-`Model.builder().with...().build()`, обновление — через `existing.toBuilder().with...().build()` или
+`Model.builder().with...().build()`, обновление - через `existing.toBuilder().with...().build()` или
 `existing.withHealth(200)`. Методы `with...` модели возвращают копию, которую нужно сохранить или присвоить; исходный
 объект не изменяется. В PUT сервис берёт id и creationDate из существующей сущности, обновляет только разрешённые поля и
 сохраняет результат через JPA merge. Для Hibernate сохранены protected-конструкторы без аргументов и доступ к полям. DTO
@@ -101,21 +101,21 @@ docker compose up --build -d
 ```
 
 Compose создаёт базу `space_marine`; Flyway создаёт схемы и таблицы. Данные PostgreSQL хранятся в томе
-`postgres_data`. Сервисы доступны на портах `8081` и `8082`, PostgreSQL — на `5432` (можно изменить порт хоста через
+`postgres_data`. Сервисы доступны на портах `8081` и `8082`, PostgreSQL - на `5432` (можно изменить порт хоста через
 `DB_PORT`). Caddy слушает порт `80` (или `CADDY_PORT`) и перенаправляет запросы:
 
-| Внешний путь | Адрес назначения |
-| --- | --- |
-| `/api/collection-service/space-marines` | `collection-service:8081/api/v1/space-marines` |
+| Внешний путь                              | Адрес назначения                                 |
+| ----------------------------------------- | ------------------------------------------------ |
+| `/api/collection-service/space-marines`   | `collection-service:8081/api/v1/space-marines`   |
 | `/api/starship-service/starship/1/load/1` | `starship-service:8082/api/v1/starship/1/load/1` |
-| Любой другой путь | фронтенд на хосте, порт `3000` |
+| Любой другой путь                         | фронтенд на хосте, порт `3000`                   |
 
 Фронтенд должен быть доступен из контейнера через `host.docker.internal:3000`; на Linux обычно требуется слушать
 `0.0.0.0`, а не только `localhost`. Для остановки используйте `docker compose down`.
 
 Для запуска без Docker:
 
-Из `lab2` выполните `./mvnw.cmd clean verify` в PowerShell (на Linux/macOS — `./mvnw clean verify`). Maven Wrapper
+Из `lab2` выполните `./mvnw.cmd clean verify` в PowerShell (на Linux/macOS - `./mvnw clean verify`). Maven Wrapper
 загрузит Maven автоматически; нужен Java 21 и доступ к Maven Central при первой сборке. При установленном Maven также
 работает `mvn clean verify`. Каждый дочерний проект можно собирать отдельно через собственный pom.xml, например
 `./mvnw.cmd -f collection-service/pom.xml clean verify`.
@@ -140,9 +140,14 @@ DB_USER/DB_PASSWORD.
 $marine = '{"name":"Marine","coordinates":{"x":1.5,"y":10},"health":100,"weaponType":"COMBI_FLAMER","chapter":{"name":"Ultramarines","world":"Macragge"}}'
 Invoke-RestMethod http://localhost:8081/api/v1/space-marines -Method Post -ContentType application/json -Body $marine
 Invoke-RestMethod 'http://localhost:8081/api/v1/space-marines?page=0&size=10&sort=health,desc&filter=health,gt,50'
+Invoke-RestMethod http://localhost:8081/api/v1/space-marines/1 -Method Patch -ContentType application/json -Body '{"health":80,"meleeWeapon":null}'
 Invoke-RestMethod http://localhost:8082/api/v1/starship/1/load/1 -Method Post
+Invoke-RestMethod 'http://localhost:8082/api/v1/starships?page=0&size=10'
+Invoke-RestMethod 'http://localhost:8082/api/v1/starship/1/space-marines?page=0&size=10&filter=health,gt,50'
 Invoke-RestMethod http://localhost:8082/api/v1/starship/1/unload-all -Method Post
 ```
+
+Список `/starships` строится из уникальных `starship_id` в таблице `boarding`. Корабль без записей о посадке в нём не появится.
 
 Фильтры и сортировка принимают повторяющиеся параметры: `sort=health,desc&sort=name,asc`. Доступные поля: id, name,
 creationDate, health, achievements, weaponType, meleeWeapon, coordinates.x, coordinates.y, chapter.name,
@@ -158,7 +163,7 @@ chapter.parentLegion, chapter.world. Несколько фильтров объ�
 запись убирается при unload-all. Проверка существования через HTTP и запись посадки не являются распределённой
 транзакцией.
 
-Первый API определяет path id как integer без int64, хотя id в DTO — int64; это сохранено по исходному контракту.
-Ограничения DTO проверяются автоматически (400), конфликты состояния дают 409, ненайденный десантник — 404. При
-недоступности первого API второй возвращает ApiError с 503, при ошибке его ответа — 502 (инфраструктурные ответы сверх
+Первый API определяет path id как integer без int64, хотя id в DTO - int64; это сохранено по исходному контракту.
+Ограничения DTO проверяются автоматически (400), конфликты состояния дают 409, ненайденный десантник - 404. При
+недоступности первого API второй возвращает ApiError с 503, при ошибке его ответа - 502 (инфраструктурные ответы сверх
 исходного контракта).

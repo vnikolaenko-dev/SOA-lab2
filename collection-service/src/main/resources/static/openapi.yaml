@@ -6,7 +6,7 @@ info:
 
     **Первый сервис** реализует базовые и дополнительные операции над коллекцией
     объектов `SpaceMarine` в соответствии с подходом RESTful:
-    * добавление, получение, обновление и удаление элементов коллекции;
+    * добавление, получение, полное и частичное обновление, удаление элементов коллекции;
     * получение массива элементов с поддержкой сортировки, фильтрации и постраничного вывода;
     * дополнительные операции: удаление по полю `health`, удаление по полю `weaponType`,
       получение элемента с максимальным значением поля `name`.
@@ -14,13 +14,14 @@ info:
     **Второй сервис** (расположен на базовом URL `/starship`) реализует операции,
     связанные с вызовом API первого сервиса:
     * погрузка выбранного десантника на корабль;
-    * высадка всех десантников с корабля.
+    * высадка всех десантников с корабля;
+    * получение экипажа корабля с фильтрацией и постраничным выводом.
 
     Все объекты коллекции передаются в формате **JSON**.
   version: 1.0.0
   contact:
     name: Space Marine Team
-security: [ ]
+security: []
 servers:
   - url: /api/v1/
     description: Корень API
@@ -174,6 +175,37 @@ paths:
           $ref: "#/components/responses/UnsupportedMediaType"
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
+    patch:
+      tags:
+        - Space Marines Collection
+      summary: Частично обновить поля элемента коллекции
+      operationId: patchSpaceMarine
+      description: Обновляет только переданные поля. Поля id, creationDate и name менять нельзя.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpaceMarinePatchInput"
+      responses:
+        "200":
+          description: Элемент успешно обновлён.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceMarine"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
     delete:
       tags:
         - Space Marines Collection
@@ -258,7 +290,7 @@ components:
   schemas:
     SpaceMarine:
       type: object
-      description: Объект коллекции — десантник космического десанта
+      description: Объект коллекции - десантник космического десанта
       required:
         - id
         - name
@@ -331,6 +363,20 @@ components:
           $ref: "#/components/schemas/MeleeWeapon"
         chapter:
           $ref: "#/components/schemas/Chapter"
+    SpaceMarinePatchInput:
+      type: object
+      description: Поля для частичного обновления. Поля id, creationDate и name не передаются.
+      properties:
+        coordinates:
+          $ref: "#/components/schemas/Coordinates"
+        health:
+          type: integer
+          format: int32
+          minimum: 1
+        weaponType:
+          $ref: "#/components/schemas/Weapon"
+        meleeWeapon:
+          $ref: "#/components/schemas/MeleeWeapon"
     Coordinates:
       type: object
       description: Координаты десантника
