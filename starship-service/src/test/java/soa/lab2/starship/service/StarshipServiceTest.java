@@ -10,10 +10,19 @@ import soa.lab2.starship.client.CollectionClient;
 import soa.lab2.starship.mapper.StarshipMapper;
 import soa.lab2.starship.model.Boarding;
 import soa.lab2.starship.repository.BoardingRepository;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class StarshipServiceTest {
     private final BoardingRepository repository = mock(BoardingRepository.class);
@@ -22,7 +31,8 @@ class StarshipServiceTest {
     private final MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
     private final StarshipService service = new StarshipService(repository, new CollectionClient(builder.build(), mapper), mapper);
 
-    @Test void loadingCallsCollectionAndPersistsBoarding() {
+    @Test
+    void loadingCallsCollectionAndPersistsBoarding() {
         server.expect(requestTo("http://collection/api/v1/space-marines/7"))
                 .andRespond(withSuccess("{\"id\":7,\"name\":\"Marine\"}", MediaType.APPLICATION_JSON));
         assertEquals(7L, service.load(2, 7).id());
@@ -34,7 +44,8 @@ class StarshipServiceTest {
         server.verify();
     }
 
-    @Test void missingMarineDoesNotCreateBoarding() {
+    @Test
+    void missingMarineDoesNotCreateBoarding() {
         server.expect(requestTo("http://collection/api/v1/space-marines/7")).andRespond(withResourceNotFound());
         var ex = assertThrows(ResponseStatusException.class, () -> service.load(2, 7));
         assertEquals(404, ex.getStatusCode().value());
@@ -42,7 +53,8 @@ class StarshipServiceTest {
         server.verify();
     }
 
-    @Test void repeatedBoardingReturnsConflict() {
+    @Test
+    void repeatedBoardingReturnsConflict() {
         server.expect(requestTo("http://collection/api/v1/space-marines/7"))
                 .andRespond(withSuccess("{\"id\":7}", MediaType.APPLICATION_JSON));
         when(repository.existsByMarineId(7L)).thenReturn(true);
@@ -52,7 +64,8 @@ class StarshipServiceTest {
         server.verify();
     }
 
-    @Test void unloadReturnsDeletedCount() {
+    @Test
+    void unloadReturnsDeletedCount() {
         when(repository.deleteAllByStarshipId(5L)).thenReturn(3);
         assertEquals(3, service.unloadAll(5));
     }

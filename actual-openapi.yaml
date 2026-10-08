@@ -20,7 +20,7 @@ info:
   version: 1.0.0
   contact:
     name: Space Marine Team
-security: [ ]
+security: []
 servers:
   - url: /api/v1/
     description: Корень API
@@ -174,6 +174,37 @@ paths:
           $ref: "#/components/responses/UnsupportedMediaType"
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
+    patch:
+      tags:
+        - Space Marines Collection
+      summary: Частично обновить поля элемента коллекции
+      operationId: patchSpaceMarine
+      description: Обновляет объект по идентификатору. Изменяет только переданные поля, запрезает изменять поля id, creationDate, name.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpaceMarinePatchInput"
+      responses:
+        "200":
+          description: Элемент успешно обновлён.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceMarine"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
     delete:
       tags:
         - Space Marines Collection
@@ -253,7 +284,126 @@ paths:
           $ref: "#/components/responses/NotFound"
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
+  /starship/{starshipId}/space-marines:
+    get:
+      tags:
+        - Starship
+      summary: Получить экипаж
+      operationId: getStarshipSpaceMarines
+      description: Возвращает список экипажа, находящегося в корабле.
+      parameters:
+        - name: starshipId
+          in: path
+          required: true
+          description: Идентификатор корабля
+          schema:
+            type: integer
+            minimum: 1
+        - name: page
+          in: query
+          description: Порядковый номер выводимой страницы (начиная с 0)
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Размер страницы (количество элементов на странице)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: filter
+          in: query
+          description: "Фильтрация: поле,оператор,значение. Операторы: eq, gt, lt."
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              example: "weaponType,eq,COMBI_FLAMER"
+      responses:
+        "200":
+          description: Список экипажа
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageOfSpaceMarine"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
 
+  /starship/{starshipId}/load/{spaceMarineId}:
+    post:
+      tags:
+        - Starship
+      summary: Погрузить десантника на корабль
+      operationId: loadSpaceMarine
+      description: Погружает десантника на корабль, обращаясь к API первого сервиса.
+      parameters:
+        - name: starshipId
+          in: path
+          required: true
+          description: Идентификатор корабля
+          schema:
+            type: integer
+            minimum: 1
+        - name: spaceMarineId
+          in: path
+          required: true
+          description: Идентификатор десантника (объекта SpaceMarine)
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Десантник успешно погружен на корабль.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceMarine"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /starship/{starshipId}/unload-all:
+    post:
+      tags:
+        - Starship
+      summary: Высадить всех десантников с корабля
+      operationId: unloadAll
+      description: Высаживает всех десантников с корабля и возвращает их количество.
+      parameters:
+        - name: starshipId
+          in: path
+          required: true
+          description: Идентификатор корабля
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Все десантники высажены. Возвращает количество высаженных.
+          content:
+            application/json:
+              schema:
+                type: integer
+                description: Количество высаженных десантников
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
 components:
   schemas:
     SpaceMarine:
@@ -331,6 +481,21 @@ components:
           $ref: "#/components/schemas/MeleeWeapon"
         chapter:
           $ref: "#/components/schemas/Chapter"
+    SpaceMarinePatchInput:
+      type: object
+      description: Входные данные или обновления объекта. Поля id, creationDate, name не передаются.
+      properties:
+        coordinates:
+          $ref: "#/components/schemas/Coordinates"
+        health:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Здоровье. Должно быть больше 0.
+        weaponType:
+          $ref: "#/components/schemas/Weapon"
+        meleeWeapon:
+          $ref: "#/components/schemas/MeleeWeapon"
     Coordinates:
       type: object
       description: Координаты десантника

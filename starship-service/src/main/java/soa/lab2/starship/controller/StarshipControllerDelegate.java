@@ -17,10 +17,13 @@ public class StarshipControllerDelegate implements StarshipApiDelegate {
         this.mapper = mapper;
     }
 
-    @Override public ResponseEntity<SpaceMarineDTO> loadSpaceMarine(Integer starshipId, Integer spaceMarineId) {
+    @Override
+    public ResponseEntity<SpaceMarineDTO> loadSpaceMarine(Integer starshipId, Integer spaceMarineId) {
         return ResponseEntity.ok(mapper.toDto(service.load(starshipId, spaceMarineId)));
     }
-    @Override public ResponseEntity<Integer> unloadAll(Integer starshipId) {
+
+    @Override
+    public ResponseEntity<Integer> unloadAll(Integer starshipId) {
         return ResponseEntity.ok(service.unloadAll(starshipId));
     }
 }

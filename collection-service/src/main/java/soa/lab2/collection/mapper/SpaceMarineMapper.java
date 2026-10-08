@@ -1,8 +1,12 @@
 package soa.lab2.collection.mapper;
 
 import org.springframework.stereotype.Component;
-import soa.lab2.collection.dto.*;
+import soa.lab2.collection.dto.ChapterDTO;
+import soa.lab2.collection.dto.CoordinatesDTO;
+import soa.lab2.collection.dto.MeleeWeaponDTO;
 import soa.lab2.collection.dto.SpaceMarineDTO;
+import soa.lab2.collection.dto.SpaceMarineInputDTO;
+import soa.lab2.collection.dto.WeaponDTO;
 import soa.lab2.collection.model.Chapter;
 import soa.lab2.collection.model.Coordinates;
 import soa.lab2.collection.model.MeleeWeapon;

@@ -22,16 +22,17 @@ public class StarshipService {
     }
 
     @Transactional
-    public SpaceMarine load(int starshipId, int marineId) {
+    public SpaceMarine load(long starshipId, long marineId) {
         SpaceMarine marine = collection.getMarine(marineId);
-        if (repository.existsByMarineId((long) marineId)) {
+        if (repository.existsByMarineId(marineId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Десантник уже находится на корабле");
         }
-        // Ограничение уникальности в БД также предотвращает одновременную посадку на разные корабли.
         repository.saveAndFlush(mapper.toBoarding(starshipId, marineId));
         return marine;
     }
 
     @Transactional
-    public int unloadAll(long starshipId) { return repository.deleteAllByStarshipId(starshipId); }
+    public int unloadAll(long starshipId) {
+        return repository.deleteAllByStarshipId(starshipId);
+    }
 }

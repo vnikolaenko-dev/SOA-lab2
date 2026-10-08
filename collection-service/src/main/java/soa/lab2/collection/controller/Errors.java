@@ -1,31 +1,40 @@
 package soa.lab2.collection.controller;
 
-import soa.lab2.collection.dto.ApiErrorDTO;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import soa.lab2.collection.dto.ApiErrorDTO;
 
 @RestControllerAdvice
 public class Errors extends ResponseEntityExceptionHandler {
     private ResponseEntity<Object> error(HttpStatusCode status, String message, String field, HttpHeaders headers) {
-        return new ResponseEntity<>(new ApiErrorDTO().status(status.value()).message(message).field(field), headers, status);
+        return new ResponseEntity<>(
+                new ApiErrorDTO()
+                        .status(status.value())
+                        .message(message)
+                        .field(field),
+                headers,
+                status);
     }
 
-    // Сообщения инфраструктурных исключений заменяются русскими описаниями.
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(Exception ex, Object body, HttpHeaders headers,
-                                                              HttpStatusCode status, WebRequest request) {
+                                                             HttpStatusCode status, WebRequest request) {
         return error(status, description(status), null, headers);
     }
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
-            HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+                                                                  HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         var fieldError = ex.getBindingResult().getFieldError();
         String field = fieldError == null ? null : fieldError.getField();
         return error(status, field == null ? "Данные запроса не прошли проверку" :

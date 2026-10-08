@@ -2,14 +2,17 @@ package soa.lab2.collection.service;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import soa.lab2.collection.model.SpaceMarine;
 import soa.lab2.collection.repository.SpaceMarineRepository;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class CollectionServiceTest {
-    @Test void updatePreservesIdentityAndCreationDate() {
+    @Test
+    void updatePreservesIdentityAndCreationDate() {
         var repository = mock(SpaceMarineRepository.class);
         var date = OffsetDateTime.parse("2026-01-01T00:00:00Z");
         var existing = SpaceMarine.builder().withId(7L).withCreationDate(date).withName("Original").build();

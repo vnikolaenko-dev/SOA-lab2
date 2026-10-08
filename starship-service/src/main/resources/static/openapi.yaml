@@ -20,7 +20,7 @@ info:
   version: 1.0.0
   contact:
     name: Space Marine Team
-security: []
+security: [ ]
 servers:
   - url: /api/v1/
     description: Корень API

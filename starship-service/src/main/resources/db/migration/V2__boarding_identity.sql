@@ -1,3 +1,0 @@
-ALTER TABLE boarding DROP CONSTRAINT boarding_pkey;
-ALTER TABLE boarding ADD COLUMN id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY;
-ALTER TABLE boarding ADD CONSTRAINT boarding_marine_unique UNIQUE (marine_id);
