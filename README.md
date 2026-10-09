@@ -123,9 +123,11 @@ Compose создаёт базу `space_marine`; Flyway создаёт схемы
 В двух терминалах:
 
 ```powershell
-java -jar collection-service/target/collection-service-1.0.0.jar
-java -jar starship-service/target/starship-service-1.0.0.jar
+java -jar collection-service/target/collection-service-1.0.0.war
+java -jar starship-service/target/starship-service-1.0.0.war
 ```
+
+Оба артефакта — исполняемые WAR: их можно запускать командой `java -jar` или развёртывать во внешнем Servlet-контейнере.
 
 Контракты доступны по `http://localhost:8081/openapi.yaml` и `http://localhost:8082/openapi.yaml`.
 
