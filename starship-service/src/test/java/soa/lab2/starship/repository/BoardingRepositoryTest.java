@@ -6,6 +6,16 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import soa.lab2.starship.mapper.StarshipMapper;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import soa.lab2.starship.client.CollectionClient;
+import soa.lab2.starship.model.SpaceMarine;
+import soa.lab2.starship.service.StarshipCommandService;
+import soa.lab2.starship.service.StarshipQueryService;
+
+import static org.mockito.Mockito.when;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -15,7 +25,30 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest(properties = {"spring.flyway.enabled=false", "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.jpa.properties.hibernate.hbm2ddl.create_namespaces=true"})
+@Import({StarshipCommandService.class, StarshipQueryService.class, StarshipMapper.class})
 class BoardingRepositoryTest {
+    @Autowired
+    StarshipCommandService commands;
+    @Autowired
+    StarshipQueryService queries;
+    @MockitoBean
+    CollectionClient collection;
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void committedBoardingAndUnloadingAreVisibleToQueries() {
+        var marine = new SpaceMarine(77L, "CQRS", null, null, 100, null, null, null, null);
+        when(collection.getMarine(77L)).thenReturn(marine);
+        commands.load(77, 77);
+        try {
+            assertTrue(queries.listStarships(0, 100).getContent().contains(77L));
+            assertEquals(java.util.List.of(marine), queries.listCrew(77, 0, 10, null).getContent());
+        } finally {
+            assertEquals(1, commands.unloadAll(77));
+        }
+        assertTrue(queries.listCrew(77, 0, 10, null).isEmpty());
+        assertFalse(queries.listStarships(0, 100).getContent().contains(77L));
+    }
     private final StarshipMapper mapper = new StarshipMapper();
     @Autowired
     BoardingRepository repository;

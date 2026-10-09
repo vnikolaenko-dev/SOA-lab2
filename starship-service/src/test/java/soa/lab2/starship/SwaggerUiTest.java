@@ -6,7 +6,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import soa.lab2.starship.service.StarshipService;
+import soa.lab2.starship.service.StarshipCommandService;
+import soa.lab2.starship.service.StarshipQueryService;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,7 +21,9 @@ class SwaggerUiTest {
     @Autowired
     MockMvc mvc;
     @MockitoBean
-    StarshipService service;
+    StarshipCommandService service;
+    @MockitoBean
+    StarshipQueryService queries;
 
     @Test
     void servesUiAndUsesContract() throws Exception {

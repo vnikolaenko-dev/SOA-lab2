@@ -9,38 +9,41 @@ import soa.lab2.starship.dto.PageOfStarshipDTO;
 import soa.lab2.starship.dto.SpaceMarineDTO;
 import soa.lab2.starship.dto.StarshipDTO;
 import soa.lab2.starship.mapper.StarshipMapper;
-import soa.lab2.starship.service.StarshipService;
+import soa.lab2.starship.service.StarshipCommandService;
+import soa.lab2.starship.service.StarshipQueryService;
 
 import java.util.Arrays;
 import java.util.List;
 
 @Component
 public class StarshipControllerDelegate implements StarshipApiDelegate {
-    private final StarshipService service;
+    private final StarshipCommandService commands;
+    private final StarshipQueryService queries;
     private final StarshipMapper mapper;
     private final HttpServletRequest request;
 
-    public StarshipControllerDelegate(StarshipService service, StarshipMapper mapper, HttpServletRequest request) {
-        this.service = service;
+    public StarshipControllerDelegate(StarshipCommandService commands, StarshipQueryService queries, StarshipMapper mapper, HttpServletRequest request) {
+        this.commands = commands;
+        this.queries = queries;
         this.mapper = mapper;
         this.request = request;
     }
 
     @Override
     public ResponseEntity<SpaceMarineDTO> loadSpaceMarine(Integer starshipId, Integer spaceMarineId) {
-        return ResponseEntity.ok(mapper.toDto(service.load(starshipId, spaceMarineId)));
+        return ResponseEntity.ok(mapper.toDto(commands.load(starshipId, spaceMarineId)));
     }
 
     @Override
     public ResponseEntity<Integer> unloadAll(Integer starshipId) {
-        return ResponseEntity.ok(service.unloadAll(starshipId));
+        return ResponseEntity.ok(commands.unloadAll(starshipId));
     }
 
     @Override
     public ResponseEntity<PageOfSpaceMarineDTO> getStarshipSpaceMarines(Integer starshipId, Integer page,
                                                                          Integer size, List<String> filter) {
         String[] rawFilter = request.getParameterValues("filter");
-        var result = service.listCrew(starshipId, page, size,
+        var result = queries.listCrew(starshipId, page, size,
                 rawFilter == null ? null : Arrays.asList(rawFilter));
         return ResponseEntity.ok(new PageOfSpaceMarineDTO()
                 .content(result.getContent().stream().map(mapper::toDto).toList())
@@ -50,7 +53,7 @@ public class StarshipControllerDelegate implements StarshipApiDelegate {
 
     @Override
     public ResponseEntity<PageOfStarshipDTO> getStarships(Integer page, Integer size) {
-        var result = service.listStarships(page, size);
+        var result = queries.listStarships(page, size);
         return ResponseEntity.ok(new PageOfStarshipDTO()
                 .content(result.getContent().stream().map(id -> new StarshipDTO().id(id)).toList())
                 .page(result.getNumber()).size(result.getSize())

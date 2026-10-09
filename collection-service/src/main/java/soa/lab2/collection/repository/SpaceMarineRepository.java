@@ -12,7 +12,10 @@ import soa.lab2.collection.model.Weapon;
 
 import java.util.Optional;
 
-public interface SpaceMarineRepository extends JpaRepository<SpaceMarine, Long>, JpaSpecificationExecutor<SpaceMarine> {
+public interface SpaceMarineRepository extends JpaRepository<SpaceMarine, Long>, JpaSpecificationExecutor<SpaceMarine>, SpaceMarineQueryRepository {
+    @Override
+    Optional<SpaceMarine> findById(Long id);
+
     long deleteByHealth(Integer health);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

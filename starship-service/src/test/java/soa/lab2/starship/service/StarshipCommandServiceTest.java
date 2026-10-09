@@ -28,12 +28,13 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-class StarshipServiceTest {
+class StarshipCommandServiceTest {
     private final BoardingRepository repository = mock(BoardingRepository.class);
     private final StarshipMapper mapper = new StarshipMapper();
     private final RestClient.Builder builder = RestClient.builder().baseUrl("http://collection/api/v1");
     private final MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    private final StarshipService service = new StarshipService(repository, new CollectionClient(builder.build(), mapper), mapper);
+    private final StarshipQueryService queries = new StarshipQueryService(repository, new CollectionClient(builder.build(), mapper));
+    private final StarshipCommandService service = new StarshipCommandService(repository, new CollectionClient(builder.build(), mapper), mapper);
 
     @Test
     void loadingCallsCollectionAndPersistsBoarding() {
@@ -87,7 +88,7 @@ class StarshipServiceTest {
         server.expect(requestTo("http://collection/api/v1/space-marines/9"))
                 .andRespond(withSuccess("{\"id\":9,\"health\":100,\"weaponType\":\"COMBI_FLAMER\"}", MediaType.APPLICATION_JSON));
 
-        var result = service.listCrew(2, 0, 1, List.of("health,gt,60", "weaponType,eq,COMBI_FLAMER"));
+        var result = queries.listCrew(2, 0, 1, List.of("health,gt,60", "weaponType,eq,COMBI_FLAMER"));
         assertEquals(1, result.getTotalElements());
         assertEquals(9L, result.getContent().getFirst().id());
         assertEquals(1, result.getTotalPages());
@@ -96,7 +97,7 @@ class StarshipServiceTest {
 
     @Test
     void invalidCrewFilterFailsBeforeRemoteCalls() {
-        assertThrows(IllegalArgumentException.class, () -> service.listCrew(2, 0, 10, List.of("health,gt,invalid")));
+        assertThrows(IllegalArgumentException.class, () -> queries.listCrew(2, 0, 10, List.of("health,gt,invalid")));
         verifyNoInteractions(repository);
     }
 
@@ -105,9 +106,9 @@ class StarshipServiceTest {
         var requestedPage = PageRequest.of(1, 2);
         when(repository.findStarshipIds(requestedPage))
                 .thenReturn(new PageImpl<>(List.of(3L), requestedPage, 3));
-        var result = service.listStarships(1, 2);
+        var result = queries.listStarships(1, 2);
         assertEquals(List.of(3L), result.getContent());
         assertEquals(3, result.getTotalElements());
-        assertThrows(IllegalArgumentException.class, () -> service.listStarships(0, 101));
+        assertThrows(IllegalArgumentException.class, () -> queries.listStarships(0, 101));
     }
 }

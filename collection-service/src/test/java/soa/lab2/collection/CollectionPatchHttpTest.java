@@ -13,7 +13,8 @@ import soa.lab2.collection.model.MeleeWeapon;
 import soa.lab2.collection.model.SpaceMarine;
 import soa.lab2.collection.model.SpaceMarinePatch;
 import soa.lab2.collection.model.Weapon;
-import soa.lab2.collection.service.CollectionService;
+import soa.lab2.collection.service.CollectionCommandService;
+import soa.lab2.collection.service.CollectionQueryService;
 
 import java.time.OffsetDateTime;
 
@@ -31,7 +32,9 @@ class CollectionPatchHttpTest {
     @Autowired
     MockMvc mvc;
     @MockitoBean
-    CollectionService service;
+    CollectionCommandService service;
+    @MockitoBean
+    CollectionQueryService queries;
 
     @Test
     void explicitNullClearsMeleeWeaponButOmittedFieldPreservesIt() throws Exception {

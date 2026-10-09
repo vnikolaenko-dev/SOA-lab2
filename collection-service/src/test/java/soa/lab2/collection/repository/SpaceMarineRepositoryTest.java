@@ -8,6 +8,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.context.annotation.Import;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import soa.lab2.collection.service.CollectionCommandService;
+import soa.lab2.collection.service.CollectionQueryService;
 import soa.lab2.collection.dto.*;
 import soa.lab2.collection.mapper.SpaceMarineMapper;
 import soa.lab2.collection.model.SpaceMarine;
@@ -17,7 +23,30 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest(properties = {"spring.flyway.enabled=false", "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.jpa.properties.hibernate.hbm2ddl.create_namespaces=true"})
+@Import({CollectionCommandService.class, CollectionQueryService.class})
 class SpaceMarineRepositoryTest {
+    @Autowired
+    CollectionCommandService commands;
+    @Autowired
+    CollectionQueryService queries;
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void committedCommandsAreVisibleToQueries() {
+        var created = commands.create(marine("CQRS", 100));
+        try {
+            assertEquals("CQRS", queries.get(created.getId()).getName());
+            commands.update(created.getId(), marine("CQRS updated", 200));
+            assertEquals(200, queries.get(created.getId()).getHealth());
+            var page = queries.list(0, 10, null, List.of("id,eq," + created.getId()));
+            assertEquals(1, page.getTotalElements());
+            assertEquals("CQRS updated", page.getContent().getFirst().getName());
+        } finally {
+            commands.delete(created.getId());
+        }
+        assertEquals(404, assertThrows(ResponseStatusException.class,
+                () -> queries.get(created.getId())).getStatusCode().value());
+    }
     @Autowired
     SpaceMarineRepository repository;
     @Autowired

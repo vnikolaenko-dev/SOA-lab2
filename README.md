@@ -76,7 +76,29 @@ client                - HTTP-клиент первого сервиса (в star
 
 Документация: [Spring Data JPA Specifications](https://docs.spring.io/spring-data/jpa/reference/jpa/specifications.html), [Hibernate ORM](https://docs.jboss.org/hibernate/orm/6.6/introduction/html_single/Hibernate_Introduction.html).
 
-## Проверки
+## CQRS
+
+В каждом сервисе обработка команд отделена от обработки запросов:
+
+| Сервис | Команды (изменение данных) | Запросы (чтение) |
+| --- | --- | --- |
+| collection-service | `CollectionCommandService`: create, update, patch, delete, deleteByHealth, deleteOneByWeapon | `CollectionQueryService`: get, getMaxName, list |
+| starship-service | `StarshipCommandService`: load, unloadAll | `StarshipQueryService`: listCrew, listStarships |
+
+HTTP-делегаты направляют операции в соответствующий сервис. Команды выполняются в обычных
+транзакциях, запросы — в `@Transactional(readOnly = true)`. Для списка коллекции сохранён
+уровень изоляции `REPEATABLE_READ`, чтобы содержимое страницы и общее количество были согласованы.
+Сервисы запросов зависят от `SpaceMarineQueryRepository` и `BoardingQueryRepository`,
+которые предоставляют только методы чтения. Эти интерфейсы реализуются существующими
+Spring Data репозиториями; отдельные Spring-бины репозиториев запросов не создаются.
+
+Используется CQRS с общей базой и общей моделью хранения: запись сразу доступна последующим
+запросам после фиксации транзакции. Отдельные проекции, брокер сообщений и Event Sourcing
+не используются. Команда может читать данные для проверки бизнес-правил и возвращать
+результат согласно действующему REST-контракту. Экипаж по-прежнему получает актуальные
+данные десантников через `CollectionClient`. Пути API, JSON и схема БД сохранены.
+
+## Проверки CQRS и моделей
 
 Модели используют Lombok `@Builder(toBuilder = true, setterPrefix = "with")` и `@With`. Создание выполняется через
 `Model.builder().with...().build()`, обновление - через `existing.toBuilder().with...().build()` или

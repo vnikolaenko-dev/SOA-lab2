@@ -6,7 +6,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import soa.lab2.collection.service.CollectionService;
+import soa.lab2.collection.service.CollectionCommandService;
+import soa.lab2.collection.service.CollectionQueryService;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -19,7 +20,9 @@ class SwaggerUiTest {
     @Autowired
     MockMvc mvc;
     @MockitoBean
-    CollectionService service;
+    CollectionCommandService service;
+    @MockitoBean
+    CollectionQueryService queries;
 
     @Test
     void servesUiAndUsesContract() throws Exception {

@@ -10,7 +10,7 @@ import soa.lab2.starship.model.Boarding;
 
 import java.util.List;
 
-public interface BoardingRepository extends JpaRepository<Boarding, Long> {
+public interface BoardingRepository extends JpaRepository<Boarding, Long>, BoardingQueryRepository {
     boolean existsByMarineId(Long marineId);
 
     List<Boarding> findAllByStarshipIdOrderByIdAsc(Long starshipId);

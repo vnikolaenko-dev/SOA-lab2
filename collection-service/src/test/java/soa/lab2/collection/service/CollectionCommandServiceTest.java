@@ -13,7 +13,7 @@ import soa.lab2.collection.repository.SpaceMarineRepository;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class CollectionServiceTest {
+class CollectionCommandServiceTest {
     @Test
     void updatePreservesIdentityAndCreationDate() {
         var repository = mock(SpaceMarineRepository.class);
@@ -23,7 +23,7 @@ class CollectionServiceTest {
                 .withName("Updated").withHealth(100).build();
         when(repository.findById(7L)).thenReturn(Optional.of(existing));
         when(repository.save(any(SpaceMarine.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        var result = new CollectionService(repository).update(7, changes);
+        var result = new CollectionCommandService(repository).update(7, changes);
         assertEquals(7L, result.getId());
         assertEquals(date, result.getCreationDate());
         assertEquals("Updated", result.getName());
@@ -42,7 +42,7 @@ class CollectionServiceTest {
         when(repository.findById(7L)).thenReturn(Optional.of(existing));
         when(repository.save(any(SpaceMarine.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var service = new CollectionService(repository);
+        var service = new CollectionCommandService(repository);
         var changed = service.patch(7, new SpaceMarinePatch(null, 80, null, null, false));
         assertEquals(7L, changed.getId());
         assertEquals(date, changed.getCreationDate());
