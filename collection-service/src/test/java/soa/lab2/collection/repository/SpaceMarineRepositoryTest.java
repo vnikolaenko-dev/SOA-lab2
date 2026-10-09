@@ -1,7 +1,9 @@
 package soa.lab2.collection.repository;
 
 import jakarta.persistence.EntityManager;
+
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -10,13 +12,16 @@ import soa.lab2.collection.dto.*;
 import soa.lab2.collection.mapper.SpaceMarineMapper;
 import soa.lab2.collection.model.SpaceMarine;
 import soa.lab2.collection.model.Weapon;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest(properties = {"spring.flyway.enabled=false", "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.jpa.properties.hibernate.hbm2ddl.create_namespaces=true"})
 class SpaceMarineRepositoryTest {
-    @Autowired SpaceMarineRepository repository;
-    @Autowired EntityManager entityManager;
+    @Autowired
+    SpaceMarineRepository repository;
+    @Autowired
+    EntityManager entityManager;
     private final SpaceMarineMapper mapper = new SpaceMarineMapper();
 
     private SpaceMarine marine(String name, int health) {
@@ -25,7 +30,8 @@ class SpaceMarineRepositoryTest {
                 .chapter(new ChapterDTO().name("ChapterDTO").world("Earth")));
     }
 
-    @Test void persistsEmbeddablesAndMapsDtoAfterReload() {
+    @Test
+    void persistsEmbeddablesAndMapsDtoAfterReload() {
         var saved = repository.saveAndFlush(marine("Alpha", 100));
         assertNotNull(saved.getId());
         assertNotNull(saved.getCreationDate());
@@ -38,7 +44,8 @@ class SpaceMarineRepositoryTest {
         assertNull(dto.getMeleeWeapon());
     }
 
-    @Test void filtersNestedFieldsAndEnumsAndPaginates() {
+    @Test
+    void filtersNestedFieldsAndEnumsAndPaginates() {
         repository.save(marine("Alpha", 100));
         repository.save(marine("Bravo", 200));
         repository.saveAndFlush(marine("Charlie", 20));
@@ -50,12 +57,14 @@ class SpaceMarineRepositoryTest {
         assertEquals("Bravo", result.getContent().getFirst().getName());
     }
 
-    @Test void orderedEnumFiltersUseNames() {
+    @Test
+    void orderedEnumFiltersUseNames() {
         repository.saveAndFlush(marine("Alpha", 100));
         assertEquals(1, repository.count(SpaceMarineSpecifications.filters(List.of("weaponType,lt,HEAVY_FLAMER"))));
     }
 
-    @Test void builderUpdateAndWithCopiesPersistWithoutCreatingAnotherRow() {
+    @Test
+    void builderUpdateAndWithCopiesPersistWithoutCreatingAnotherRow() {
         var saved = repository.saveAndFlush(marine("Original", 100));
         entityManager.refresh(saved);
         Long id = saved.getId();
@@ -77,7 +86,8 @@ class SpaceMarineRepositoryTest {
         assertEquals(25, reloaded.getCoordinates().getY());
     }
 
-    @Test void additionalOperationsUseRepository() {
+    @Test
+    void additionalOperationsUseRepository() {
         repository.save(marine("Alpha", 100));
         repository.saveAndFlush(marine("Zulu", 100));
         assertEquals("Zulu", repository.findFirstByOrderByNameDescIdAsc().orElseThrow().getName());
@@ -90,13 +100,15 @@ class SpaceMarineRepositoryTest {
         assertEquals(0, repository.deleteMarineById(999L));
     }
 
-    @Test void invalidFilterAndSortFailBeforeQuery() {
+    @Test
+    void invalidFilterAndSortFailBeforeQuery() {
         assertThrows(IllegalArgumentException.class, () -> SpaceMarineSpecifications.filters(List.of("missing,eq,1")));
         assertThrows(IllegalArgumentException.class, () -> SpaceMarineSpecifications.filters(List.of("health,gt,no")));
         assertThrows(IllegalArgumentException.class, () -> SpaceMarineSpecifications.sort(List.of("name,invalid")));
     }
 
-    @Test void generatedEnumAndFilterExceptionsAreRussian() {
+    @Test
+    void generatedEnumAndFilterExceptionsAreRussian() {
         var enumError = assertThrows(IllegalArgumentException.class, () -> WeaponDTO.fromValue("UNKNOWN"));
         assertEquals("Недопустимое значение 'UNKNOWN'", enumError.getMessage());
         var filterError = assertThrows(IllegalArgumentException.class,

@@ -1,0 +1,62 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: space_marine
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD before starting Compose}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d space_marine"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  collection-service:
+    build:
+      context: .
+      dockerfile: collection-service/Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/space_marine
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD before starting Compose}
+    ports:
+      - "8081:8081"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  starship-service:
+    build:
+      context: .
+      dockerfile: starship-service/Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/space_marine
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD before starting Compose}
+      COLLECTION_URL: http://collection-service:8081/api/v1
+    ports:
+      - "8082:8082"
+    depends_on:
+      db:
+        condition: service_healthy
+      collection-service:
+        condition: service_started
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "${CADDY_PORT:-80}:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - collection-service
+      - starship-service
+
+volumes:
+  postgres_data:

@@ -1,9 +1,24 @@
 package soa.lab2.collection.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.With;
+
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import lombok.*;
 
 @Entity
 @Table(name = "space_marine")
@@ -34,7 +49,10 @@ public class SpaceMarine {
     private MeleeWeapon meleeWeapon;
     @Embedded
     private Chapter chapter;
+
     @PrePersist
-    void initializeCreationDate() { if (creationDate == null) creationDate = OffsetDateTime.now(ZoneOffset.UTC); }
+    void initializeCreationDate() {
+        if (creationDate == null) creationDate = OffsetDateTime.now(ZoneOffset.UTC);
+    }
 
 }

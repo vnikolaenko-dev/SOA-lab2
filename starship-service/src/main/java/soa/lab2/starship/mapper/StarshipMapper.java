@@ -1,8 +1,11 @@
 package soa.lab2.starship.mapper;
 
 import org.springframework.stereotype.Component;
-import soa.lab2.starship.dto.*;
+import soa.lab2.starship.dto.ChapterDTO;
+import soa.lab2.starship.dto.CoordinatesDTO;
+import soa.lab2.starship.dto.MeleeWeaponDTO;
 import soa.lab2.starship.dto.SpaceMarineDTO;
+import soa.lab2.starship.dto.WeaponDTO;
 import soa.lab2.starship.model.Boarding;
 import soa.lab2.starship.model.SpaceMarine;
 import soa.lab2.starship.model.SpaceMarine.Chapter;

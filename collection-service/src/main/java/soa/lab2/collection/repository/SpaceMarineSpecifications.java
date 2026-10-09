@@ -2,15 +2,20 @@ package soa.lab2.collection.repository;
 
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Path;
-import java.time.DateTimeException;
-import java.time.OffsetDateTime;
-import java.util.*;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import soa.lab2.collection.model.*;
+import soa.lab2.collection.model.MeleeWeapon;
+import soa.lab2.collection.model.SpaceMarine;
+import soa.lab2.collection.model.Weapon;
+
+import java.time.DateTimeException;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public final class SpaceMarineSpecifications {
-    private SpaceMarineSpecifications() {}
     private static final Map<String, Class<?>> FIELDS = Map.ofEntries(
             Map.entry("id", Long.class), Map.entry("creationDate", OffsetDateTime.class),
             Map.entry("name", String.class), Map.entry("health", Integer.class),
@@ -19,6 +24,9 @@ public final class SpaceMarineSpecifications {
             Map.entry("coordinates.x", Double.class), Map.entry("coordinates.y", Integer.class),
             Map.entry("chapter.name", String.class), Map.entry("chapter.parentLegion", String.class),
             Map.entry("chapter.world", String.class));
+
+    private SpaceMarineSpecifications() {
+    }
 
     private static Class<?> type(String field) {
         var type = FIELDS.get(field);

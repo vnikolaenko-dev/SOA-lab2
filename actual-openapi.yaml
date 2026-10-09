@@ -6,7 +6,7 @@ info:
 
     **Первый сервис** реализует базовые и дополнительные операции над коллекцией
     объектов `SpaceMarine` в соответствии с подходом RESTful:
-    * добавление, получение, полное и частичное обновление, удаление элементов коллекции;
+    * добавление, получение, обновление и удаление элементов коллекции;
     * получение массива элементов с поддержкой сортировки, фильтрации и постраничного вывода;
     * дополнительные операции: удаление по полю `health`, удаление по полю `weaponType`,
       получение элемента с максимальным значением поля `name`.
@@ -14,9 +14,7 @@ info:
     **Второй сервис** (расположен на базовом URL `/starship`) реализует операции,
     связанные с вызовом API первого сервиса:
     * погрузка выбранного десантника на корабль;
-    * высадка всех десантников с корабля;
-    * получение экипажа корабля с фильтрацией и постраничным выводом;
-    * получение страницы кораблей, у которых есть записи о посадке.
+    * высадка всех десантников с корабля.
 
     Все объекты коллекции передаются в формате **JSON**.
   version: 1.0.0
@@ -32,38 +30,258 @@ tags:
   - name: Starship
     description: Операции второго веб-сервиса по управлению десантниками на корабле
 paths:
-  /starships:
+  /space-marines:
     get:
       tags:
-        - Starship
-      summary: Получить список кораблей
-      operationId: getStarships
-      description: Возвращает уникальные идентификаторы кораблей из записей о посадке. Корабли без экипажа в списке отсутствуют.
+        - Space Marines Collection
+      summary: Получить массив объектов коллекции
+      operationId: getSpaceMarines
+      description: Возвращает страницу объектов коллекции с фильтрацией, сортировкой и пагинацией.
       parameters:
         - name: page
           in: query
-          description: Порядковый номер страницы (начиная с 0)
+          description: Порядковый номер выводимой страницы (начиная с 0)
           schema:
             type: integer
             minimum: 0
             default: 0
         - name: size
           in: query
-          description: Размер страницы
+          description: Размер страницы (количество элементов на странице)
           schema:
             type: integer
             minimum: 1
             maximum: 100
             default: 10
+        - name: sort
+          in: query
+          description: "Сортировка: поле[,asc|desc], можно несколько раз."
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              example: "health,desc"
+        - name: filter
+          in: query
+          description: "Фильтрация: поле,оператор,значение. Операторы: eq, gt, lt."
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              example: "weaponType,eq,COMBI_FLAMER"
       responses:
         "200":
-          description: Страница кораблей
+          description: Успешный ответ. Возвращает страницу выборки объектов коллекции.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PageOfStarship"
+                $ref: "#/components/schemas/PageOfSpaceMarine"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+    post:
+      tags:
+        - Space Marines Collection
+      summary: Добавить новый элемент в коллекцию
+      operationId: addSpaceMarine
+      description: Добавляет объект в коллекцию. Поля id и creationDate генерируются автоматически.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpaceMarineInput"
+      responses:
+        "201":
+          description: Элемент успешно добавлен в коллекцию.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceMarine"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+  /space-marines/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Идентификатор объекта SpaceMarine в коллекции
+        schema:
+          type: integer
+          minimum: 1
+    get:
+      tags:
+        - Space Marines Collection
+      summary: Получить элемент коллекции по идентификатору
+      operationId: getSpaceMarineById
+      description: Возвращает объект `SpaceMarine` по его идентификатору.
+      responses:
+        "200":
+          description: Объект найден.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceMarine"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+    put:
+      tags:
+        - Space Marines Collection
+      summary: Обновить элемент коллекции
+      operationId: updateSpaceMarine
+      description: Обновляет объект по идентификатору. Поля id и creationDate менять нельзя.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpaceMarineInput"
+      responses:
+        "200":
+          description: Элемент успешно обновлён.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceMarine"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+    patch:
+      tags:
+        - Space Marines Collection
+      summary: Частично обновить поля элемента коллекции
+      operationId: patchSpaceMarine
+      description: Обновляет объект по идентификатору. Изменяет только переданные поля, запрезает изменять поля id, creationDate, name.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpaceMarinePatchInput"
+      responses:
+        "200":
+          description: Элемент успешно обновлён.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceMarine"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+    delete:
+      tags:
+        - Space Marines Collection
+      summary: Удалить элемент коллекции
+      operationId: deleteSpaceMarine
+      description: Удаляет объект `SpaceMarine` из коллекции по идентификатору.
+      responses:
+        "204":
+          description: Элемент успешно удалён. Тело ответа отсутствует. Если объект отсутствует, операция всё равно завершается успешно.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /space-marines/health/{health}:
+    delete:
+      tags:
+        - Space Marines Collection
+      summary: Удалить все объекты с заданным значением health
+      operationId: deleteByHealth
+      description: Удаляет все объекты с заданным health и возвращает их количество.
+      parameters:
+        - name: health
+          in: path
+          required: true
+          description: Значение поля health для удаления
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Операция выполнена. Возвращает количество удалённых объектов.
+          content:
+            application/json:
+              schema:
+                type: integer
+                description: Количество удалённых объектов
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /space-marines/weapon/{weaponType}:
+    delete:
+      tags:
+        - Space Marines Collection
+      summary: Удалить один объект с заданным значением weaponType
+      operationId: deleteOneByWeapon
+      description: Удаляет один объект с заданным weaponType.
+      parameters:
+        - name: weaponType
+          in: path
+          required: true
+          description: Значение поля weaponType
+          schema:
+            $ref: "#/components/schemas/Weapon"
+      responses:
+        "204":
+          description: Успешное удаление. Тело ответа отсутствует. Если подходящих объектов нет, операция всё равно завершается успешно.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /space-marines/name/max:
+    get:
+      tags:
+        - Space Marines Collection
+      summary: Получить объект с максимальным значением поля name
+      operationId: getMaxName
+      description: Возвращает объект с максимальным значением name.
+      responses:
+        "200":
+          description: Объект с максимальным значением name.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceMarine"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
   /starship/{starshipId}/space-marines:
@@ -83,14 +301,14 @@ paths:
             minimum: 1
         - name: page
           in: query
-          description: Порядковый номер страницы (начиная с 0)
+          description: Порядковый номер выводимой страницы (начиная с 0)
           schema:
             type: integer
             minimum: 0
             default: 0
         - name: size
           in: query
-          description: Размер страницы
+          description: Размер страницы (количество элементов на странице)
           schema:
             type: integer
             minimum: 1
@@ -119,6 +337,7 @@ paths:
           $ref: "#/components/responses/NotFound"
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
+
   /starship/{starshipId}/load/{spaceMarineId}:
     post:
       tags:
@@ -187,43 +406,6 @@ paths:
           $ref: "#/components/responses/MethodNotAllowed"
 components:
   schemas:
-    Starship:
-      type: object
-      description: Корабль, упомянутый в записях о посадке
-      required:
-        - id
-      properties:
-        id:
-          type: integer
-          format: int64
-          minimum: 1
-          description: Идентификатор корабля
-    PageOfStarship:
-      type: object
-      description: Страница кораблей
-      required:
-        - content
-        - page
-        - size
-        - totalElements
-        - totalPages
-      properties:
-        content:
-          type: array
-          items:
-            $ref: "#/components/schemas/Starship"
-        page:
-          type: integer
-          description: Порядковый номер текущей страницы (начиная с 0)
-        size:
-          type: integer
-          description: Размер страницы
-        totalElements:
-          type: integer
-          description: Общее количество кораблей
-        totalPages:
-          type: integer
-          description: Общее количество страниц
     SpaceMarine:
       type: object
       description: Объект коллекции - десантник космического десанта
@@ -299,6 +481,21 @@ components:
           $ref: "#/components/schemas/MeleeWeapon"
         chapter:
           $ref: "#/components/schemas/Chapter"
+    SpaceMarinePatchInput:
+      type: object
+      description: Входные данные или обновления объекта. Поля id, creationDate, name не передаются.
+      properties:
+        coordinates:
+          $ref: "#/components/schemas/Coordinates"
+        health:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Здоровье. Должно быть больше 0.
+        weaponType:
+          $ref: "#/components/schemas/Weapon"
+        meleeWeapon:
+          $ref: "#/components/schemas/MeleeWeapon"
     Coordinates:
       type: object
       description: Координаты десантника

@@ -1,9 +1,22 @@
 package soa.lab2.starship.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.With;
+
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import lombok.*;
 
 @Entity
 @Table(name = "boarding", uniqueConstraints = @UniqueConstraint(name = "boarding_marine_unique", columnNames = "marine_id"))
@@ -24,6 +37,9 @@ public class Boarding {
     private OffsetDateTime loadedAt;
 
     @PrePersist
-    void initializeLoadedAt() { if (loadedAt == null) loadedAt = OffsetDateTime.now(ZoneOffset.UTC); }
+    void initializeLoadedAt() {
+        if (loadedAt == null)
+            loadedAt = OffsetDateTime.now(ZoneOffset.UTC);
+    }
 
 }
