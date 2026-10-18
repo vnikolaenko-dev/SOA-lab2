@@ -4,7 +4,6 @@ WORKDIR /build
 COPY collection-service/pom.xml collection-service/pom.xml
 RUN mvn -B -f collection-service/pom.xml dependency:go-offline
 
-COPY openapi-templates/ openapi-templates/
 COPY collection-service/src/ collection-service/src/
 RUN mvn -B -f collection-service/pom.xml -DskipTests package
 

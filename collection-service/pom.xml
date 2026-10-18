@@ -89,7 +89,6 @@
                             <apiPackage>soa.lab2.collection.controller.generated</apiPackage>
                             <modelPackage>soa.lab2.collection.dto</modelPackage>
                             <modelNameSuffix>DTO</modelNameSuffix>
-                            <templateDirectory>${project.basedir}/../openapi-templates</templateDirectory>
                             <generateApiTests>false</generateApiTests>
                             <generateModelTests>false</generateModelTests>
                             <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>

@@ -4,7 +4,6 @@ WORKDIR /build
 COPY starship-service/pom.xml starship-service/pom.xml
 RUN mvn -B -f starship-service/pom.xml dependency:go-offline
 
-COPY openapi-templates/ openapi-templates/
 COPY starship-service/src/ starship-service/src/
 RUN mvn -B -f starship-service/pom.xml -DskipTests package
 
