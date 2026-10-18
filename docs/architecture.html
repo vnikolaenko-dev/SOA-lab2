@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Схемы и объяснение Spring Cloud Config, запуска сервисов и Contract First в лабораторной работе 2.">
+<title>Как устроен проект · Spring Cloud Config</title>
+<style>
+:root{color-scheme:dark;--bg:#10151d;--panel:#19212d;--line:#354255;--text:#eef3fa;--muted:#b3c0d0;--accent:#8ce2bd;--blue:#91bfff;--orange:#ffd099}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:30px}body{margin:0;background:var(--bg);color:var(--text);font:17px/1.65 system-ui,sans-serif}main{max-width:1120px;margin:auto;padding:64px 28px}a{color:var(--accent)}nav{display:flex;gap:12px 24px;flex-wrap:wrap;border-block:1px solid var(--line);padding:18px 0;margin:34px 0 56px}nav a{text-decoration:none;font-size:14px}h1{font-size:clamp(38px,6vw,68px);line-height:1.1;letter-spacing:-2px;max-width:850px;margin:18px 0 26px}h2{font-size:30px;line-height:1.2;margin:0 0 22px}h3{font-size:19px;margin:0 0 10px}p{margin:12px 0;color:var(--muted)}header>p{max-width:750px;font-size:20px}.eyebrow{color:var(--accent);font:13px ui-monospace,monospace;text-transform:uppercase;letter-spacing:2px}section{margin:0 0 64px}.section-label{font:13px ui-monospace,monospace;color:var(--accent);display:block;margin-bottom:12px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.flow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:22px 0}.node{border:1px solid var(--line);background:var(--panel);padding:18px;border-radius:12px;flex:1;min-width:160px}.node strong{display:block}.arrow{color:var(--accent);font-size:24px}.tag{display:inline-block;color:var(--accent);border:1px solid #436a5a;border-radius:30px;padding:3px 12px;font-size:13px}code,pre{font:14px/1.65 ui-monospace,Consolas,monospace}code{color:var(--blue);overflow-wrap:anywhere}pre{background:#0d1219;border:1px solid var(--line);border-radius:10px;padding:18px;overflow:auto;color:#dbe9fc;white-space:pre-wrap;overflow-wrap:anywhere}table{width:100%;border-collapse:collapse;font-size:15px}th,td{text-align:left;vertical-align:top;padding:14px;border-bottom:1px solid var(--line)}th{color:var(--accent)}.scroll{overflow:auto}.note{border-left:3px solid var(--orange);padding:4px 20px;margin:22px 0}.note p{color:var(--orange)}button{font:inherit;color:var(--text);border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:10px 16px;cursor:pointer}button:hover,button[aria-pressed=true]{border-color:var(--accent);color:var(--accent)}button:focus-visible,a:focus-visible{outline:3px solid var(--orange);outline-offset:4px}.controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.step{border-top:3px solid var(--line);padding:18px 10px;opacity:.45}.step.active{border-color:var(--accent);opacity:1}.step small{display:block;color:var(--accent);margin-bottom:10px}#step-description{min-height:100px}.diagram{overflow:auto;margin:24px 0}.diagram svg{display:block;min-width:720px;width:100%;height:auto}.diagram text{font-family:system-ui,sans-serif;fill:var(--text)}.diagram .sub{fill:var(--muted);font-size:13px}.diagram rect{fill:var(--panel);stroke:var(--line);stroke-width:1.5}.diagram .config{stroke:var(--accent)}.diagram .connection{stroke:var(--blue);stroke-width:2;fill:none}.diagram .configline{stroke:var(--accent);stroke-width:2;fill:none;stroke-dasharray:6 5}footer{border-top:1px solid var(--line);padding-top:22px;color:var(--muted);font-size:14px}@media(max-width:700px){main{padding:36px 18px}.grid,.steps{grid-template-columns:1fr}.panel{padding:20px}h2{font-size:25px}.step{padding:10px;opacity:.6}nav{margin-bottom:38px}.flow{flex-direction:column;align-items:stretch}.arrow{text-align:center;transform:rotate(90deg)}}@media print{body{background:white;color:#15202e}p,footer{color:#354255}.panel,.node,pre,button{background:white;color:#15202e}nav,.controls{display:none}main{padding:0}.diagram text{fill:#15202e}.diagram rect{fill:#f2f5f8}.diagram .sub{fill:#354255}section{break-inside:avoid}code{color:#23558a}.step{opacity:1}}
+</style>
+</head>
+<body>
+<main>
+<header><span class="eyebrow">СОА / лабораторная работа 2</span><h1>Один источник настроек.<br>Два самостоятельных сервиса.</h1><p>Как Spring Cloud Config передаёт конфигурацию приложениям, что происходит при запуске и где в этой архитектуре находятся OpenAPI, CQRS и PostgreSQL.</p><span class="tag">Схема текущего проекта</span></header>
+<nav aria-label="Разделы"><a href="#map">Архитектура</a><a href="#startup">Запуск по шагам</a><a href="#config">Сборка настроек</a><a href="#code">От контракта до БД</a><a href="#run">Как запустить</a></nav>
+
+<section id="map"><span class="section-label">01 / Карта системы</span><h2>Конфигурация и рабочие запросы</h2><p>Config Server обслуживает загрузку настроек. После старта REST-запросы обрабатывают сами приложения: Config Server не участвует в каждом обращении к API.</p>
+<div class="diagram"><svg viewBox="0 0 1000 535" role="img" aria-labelledby="map-title map-desc"><title id="map-title">Связи компонентов проекта</title><desc id="map-desc">Файлы настроек читает Config Server. Сервисы загружают настройки с него, принимают запросы через Caddy и обращаются к разным схемам PostgreSQL. Starship обращается к Collection по HTTP.</desc><defs><marker id="blue-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#91bfff"/></marker><marker id="green-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#8ce2bd"/></marker></defs>
+<rect x="30" y="20" width="280" height="85" rx="12"/><text x="50" y="53" font-size="18">config-repository/</text><text x="50" y="80" class="sub">Общие + настройки каждого сервиса</text>
+<path class="configline" d="M310 62H405" marker-end="url(#green-arrow)"/>
+<rect class="config" x="410" y="20" width="240" height="85" rx="12"/><text x="435" y="53" font-size="18">Config Server :8888</text><text x="435" y="80" class="sub">native / файлы в classpath</text>
+<path class="configline" d="M465 105V150H310V205" marker-end="url(#green-arrow)"/><path class="configline" d="M595 105V150H760V205" marker-end="url(#green-arrow)"/><text x="365" y="178" class="sub">Загрузка настроек при старте</text>
+<rect x="30" y="215" width="160" height="85" rx="12"/><text x="55" y="250" font-size="18">Caddy :80</text><text x="55" y="276" class="sub">Вход в API</text>
+<path class="connection" d="M190 235H230" marker-end="url(#blue-arrow)"/><path class="connection" d="M110 300V350H755V300" marker-end="url(#blue-arrow)"/>
+<rect x="235" y="205" width="270" height="95" rx="12"/><text x="255" y="243" font-size="18">collection-service :8081</text><text x="255" y="273" class="sub">Коллекция SpaceMarine · CRUD</text>
+<rect x="620" y="205" width="340" height="95" rx="12"/><text x="645" y="243" font-size="18">starship-service :8082</text><text x="645" y="273" class="sub">Посадка / высадка / экипаж</text>
+<path class="connection" d="M620 252H505" marker-end="url(#blue-arrow)"/><text x="536" y="237" class="sub">HTTP</text>
+<path class="connection" d="M365 300V405" marker-end="url(#blue-arrow)"/><path class="connection" d="M825 300V405" marker-end="url(#blue-arrow)"/>
+<rect x="235" y="410" width="725" height="95" rx="12"/><text x="265" y="447" font-size="18">PostgreSQL · space_marine</text><text x="265" y="480" class="sub">Схема collection</text><text x="745" y="480" class="sub">Схема starship</text>
+</svg></div><p><span style="color:var(--accent)">Пунктир — передача конфигурации.</span> <span style="color:var(--blue)">Сплошные стрелки — обращения во время работы.</span> Направление стрелок конфигурации показывает движение настроек; HTTP-запрос к Config Server инициирует клиент.</p><p>Caddy направляет <code>/api/collection-service/*</code> и <code>/api/starship-service/*</code> к соответствующим приложениям. Локально можно обращаться прямо на порты 8081 и 8082.</p></section>
+
+<section id="startup"><span class="section-label">02 / Жизненный цикл</span><h2>Что происходит при запуске</h2><p>Выберите шаг, чтобы пройти путь от файлов конфигурации до готового API. Это поясняющая схема, она не запускает приложения.</p>
+<div class="controls" role="group" aria-label="Шаг запуска"><button type="button" data-step="0" aria-pressed="true">1. Сервер</button><button type="button" data-step="1" aria-pressed="false">2. Запрос</button><button type="button" data-step="2" aria-pressed="false">3. Настройки</button><button type="button" data-step="3" aria-pressed="false">4. Приложение</button></div>
+<div class="steps"><div class="step active"><small>01</small><strong>Config Server</strong><p>Читает файловый репозиторий</p></div><div class="step"><small>02</small><strong>Config Client</strong><p>Запрашивает своё имя и профиль</p></div><div class="step"><small>03</small><strong>Spring Environment</strong><p>Объединяет источники свойств</p></div><div class="step"><small>04</small><strong>Spring Boot</strong><p>Создаёт компоненты и запускает API</p></div></div>
+<div class="panel" id="step-description" aria-live="polite">Сначала запускается config-server. Профиль native включает чтение файлов из classpath:/config-repository/. По умолчанию эти файлы упакованы в JAR сервера.</div>
+<div class="grid" style="margin-top:20px"><article class="panel"><h3>Локальный запуск</h3><p>Импорт конфигурации обязателен. Сначала запустите Config Server, затем приложения. Если сервер недоступен при запуске, клиент завершится с ошибкой. Для работы также нужна доступная база данных.</p></article><article class="panel"><h3>Docker Compose</h3><p>Импорт обязательный, включён <code>fail-fast</code> и до 20 попыток подключения. Compose ожидает запуска контейнера Config Server; готовности его HTTP API клиенты дожидаются повторными попытками. Для PostgreSQL настроена проверка здоровья.</p></article></div></section>
+
+<section id="config"><span class="section-label">03 / Источники свойств</span><h2>Как сервис получает именно свои настройки</h2><p><code>spring.application.name=collection-service</code> связывает клиент с файлом <code>collection-service.properties</code>. Для обычного запуска клиент запрашивает профиль <code>default</code>.</p>
+<div class="flow"><div class="node"><strong>application.properties</strong><p>Общие настройки: JPA, Jackson, адрес БД</p></div><span class="arrow" aria-hidden="true">+</span><div class="node"><strong>collection-service.properties</strong><p>Порт 8081, схема collection</p></div><span class="arrow" aria-hidden="true">→</span><div class="node"><strong>JSON с источниками</strong><p>GET /collection-service/default</p></div></div>
+<pre>config-server/src/main/resources/
+├── application.properties           ← настройки самого Config Server
+└── config-repository/
+    ├── application.properties       ← общие настройки клиентов
+    ├── collection-service.properties
+    └── starship-service.properties</pre>
+<p>Одинаковые имена <code>application.properties</code> здесь имеют разный смысл: внешний файл запускает сервер, вложенный файл сервер отдаёт клиентам.</p>
+<div class="scroll"><table><caption style="text-align:left;color:var(--muted)">Приоритет среди используемых в проекте источников: сверху выше</caption><thead><tr><th>Источник</th><th>Пример</th><th>Назначение</th></tr></thead><tbody><tr><td>Переменные окружения клиента</td><td><code>DB_URL</code>, <code>DB_PASSWORD</code>, <code>PORT</code></td><td>Значения для конкретного окружения. В текущих файлах используются через <code>${…}</code>; прямое переопределение свойства тоже возможно, например <code>SPRING_DATASOURCE_URL</code>.</td></tr><tr><td>Файл сервиса на Config Server</td><td><code>starship-service.properties</code></td><td>Настройки отдельного приложения, при совпадении ключа перекрывают общие.</td></tr><tr><td>Общий файл на Config Server</td><td><code>config-repository/application.properties</code></td><td>Одинаковые настройки для обоих клиентов.</td></tr><tr><td>Локальный файл клиента</td><td><code>src/main/resources/application.properties</code></td><td>Только имя приложения и обязательный импорт конфигурации. Рабочие настройки находятся на Config Server; тестовые — в src/test/resources.</td></tr></tbody></table></div>
+<div class="note"><p>Config Server отдаёт ссылку <code>${DB_PASSWORD}</code>, а значение пароля берётся из окружения клиента. Передавайте его через <code>DB_PASSWORD</code>; значения по умолчанию нет. Изменение конфигурационного файла не обновляет уже запущенный сервис автоматически.</p></div>
+<p>В текущем варианте файлы встроены в серверный JAR. После изменения исходных файлов пересоберите и перезапустите Config Server, затем клиентов. Для внешней папки можно задать <code>CONFIG_REPOSITORY=file:/absolute/path/</code>; в Docker её также нужно смонтировать.</p></section>
+
+<section id="code"><span class="section-label">04 / Контракт и выполнение</span><h2>OpenAPI создаёт код, Config Server задаёт настройки</h2><div class="grid"><article class="panel"><h3>Во время сборки · Contract First</h3><pre>openapi.yaml
+ встроенные шаблоны генератора
+ mvn generate-sources
+             ↓
+контроллеры, API, делегаты, DTO
+             ↓
+компиляция вместе с реализацией</pre><p>Контракт описывает маршруты, параметры и JSON. Maven OpenAPI Generator создаёт Java-классы в <code>target/generated-sources/openapi</code>. Бизнес-логика хранится в собственных классах проекта.</p></article><article class="panel"><h3>Во время запуска · Config</h3><pre>Config Server
+      ↓ HTTP
+Spring Environment клиента
+      ↓
+порт, datasource, JPA, Jackson,
+схема Flyway, адрес другого API</pre><p>Конфигурация определяет окружение запуска. Изменение порта или URL базы не требует изменения OpenAPI-контракта.</p></article></div>
+<h3 style="margin-top:30px">Путь рабочего запроса</h3><div class="flow"><div class="node"><strong>HTTP → Controller</strong><p>Сгенерированный маршрут и проверка DTO</p></div><span class="arrow" aria-hidden="true">→</span><div class="node"><strong>Delegate → Service</strong><p>Маппинг и бизнес-правила</p></div><span class="arrow" aria-hidden="true">→</span><div class="node"><strong>Repository → БД</strong><p>JPA / Hibernate / PostgreSQL</p></div></div><p>В CQRS команды изменения данных обрабатывают <code>CollectionCommandService</code> и <code>StarshipCommandService</code>, чтение — соответствующие <code>QueryService</code>. Используется общая модель хранения; отдельной базы чтения и брокера сообщений нет.</p><div class="note"><p>Flyway выполняет и проверяет миграции БД при запуске, Hibernate проверяет структуру через <code>ddl-auto=validate</code>. Ошибка checksum у миграции блокирует запуск независимо от успешной загрузки настроек из Config Server.</p></div></section>
+
+<section id="run"><span class="section-label">05 / Практика</span><h2>Запустить и проверить</h2><p>Откройте три терминала в корне проекта. Сначала запустите сервер конфигурации, затем приложения с доступной PostgreSQL и корректными параметрами подключения.</p><pre># Терминал 1
+.\mvnw.cmd -pl config-server spring-boot:run
+
+# Терминал 2 (DB_USER и DB_URL задайте при необходимости)
+$env:DB_PASSWORD = 'ваш-пароль'
+.\mvnw.cmd -pl collection-service spring-boot:run
+
+# Терминал 3
+$env:DB_PASSWORD = 'ваш-пароль'
+.\mvnw.cmd -pl starship-service spring-boot:run</pre><p>Переменные окружения PowerShell действуют в том терминале, где заданы. Эти команды выполняются вами; страница сама не обращается к сервисам.</p><div class="grid"><article class="panel"><h3>Посмотреть ответ Config Server</h3><p><a href="http://localhost:8888/collection-service/default" target="_blank" rel="noopener">Настройки collection-service ↗</a><br><a href="http://localhost:8888/starship-service/default" target="_blank" rel="noopener">Настройки starship-service ↗</a></p><p>В JSON будут имя приложения, профиль и список <code>propertySources</code>. Это конфигурация, а не данные SpaceMarine.</p></article><article class="panel"><h3>Весь проект через Docker</h3><pre>$env:DB_PASSWORD = 'ваш-пароль'
+docker compose up --build</pre><p>В контейнерах клиенты используют <code>http://config-server:8888</code>, а БД — имя <code>db</code>. С хоста Config Server доступен на localhost:8888.</p></article></div></section>
+<footer>Документация проекта lab2 · Spring Boot 3.5.11 / Java 21 / Spring Cloud 2025.0.3.<br>Страница автономная: стили, схемы и интерактивные шаги работают без внешних библиотек и интернета.</footer>
+</main>
+<script>
+const descriptions = [
+ 'Сначала запускается config-server. Профиль native включает чтение файлов из classpath:/config-repository/. По умолчанию эти файлы упакованы в JAR сервера.',
+ 'Клиент читает своё spring.application.name и spring.config.import. Например, collection-service обращается к Config Server по HTTP: GET /collection-service/default. Адрес сервера можно задать через CONFIG_SERVER_URL.',
+ 'Config Server возвращает общие свойства и свойства конкретного сервиса. Клиент добавляет их в Spring Environment. Переменные окружения позволяют задать адрес БД, пароль, порт и адрес другого API для текущего запуска.',
+ 'Spring Boot создаёт DataSource и остальные компоненты. Flyway проверяет и применяет миграции, Hibernate проверяет схему. После успешной инициализации приложение готово принимать запросы; загруженные настройки остаются в его памяти.'
+];
+document.querySelectorAll('[data-step]').forEach(button => button.addEventListener('click', () => {
+ const selected = Number(button.dataset.step);
+ document.querySelectorAll('[data-step]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+ document.querySelectorAll('.step').forEach((item, index) => item.classList.toggle('active', index === selected));
+ document.getElementById('step-description').textContent = descriptions[selected];
+}));
+</script>
+</body>
+</html>

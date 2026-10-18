@@ -4,4 +4,5 @@
 .env
 verification.log
 builder-verification.log
+config-verification.log
 dist

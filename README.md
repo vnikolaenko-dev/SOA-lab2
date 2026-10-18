@@ -1,11 +1,45 @@
 # Лабораторная работа 2
 
+[Схемы архитектуры и объяснение Spring Cloud Config](docs/architecture.html) — автономная HTML-страница;
+скачайте или откройте файл в браузере. Включает связи компонентов, шаги запуска и приоритеты настроек.
+
 Два самостоятельных Spring Boot 3.5.11 / Java 21 / Spring MVC REST приложения:
 
 | Проект             | Порт | Назначение                                                                |
 | ------------------ | ---- | ------------------------------------------------------------------------- |
 | collection-service | 8081 | CRUD SpaceMarine, фильтры, сортировка, пагинация, дополнительные операции |
 | starship-service   | 8082 | Посадка, высадка, просмотр экипажа и список кораблей                      |
+
+## Spring Cloud Config
+
+Модуль `config-server` (порт 8888) использует Spring Cloud 2025.0.3 и native backend:
+общие настройки находятся в `config-server/src/main/resources/config-repository/application.properties`,
+настройки сервисов — в `collection-service.properties` и `starship-service.properties` в той же папке.
+Имена файлов соответствуют `spring.application.name` клиентов.
+
+В отдельном терминале запустите сервер, затем оба приложения:
+
+```powershell
+.\mvnw.cmd -pl config-server spring-boot:run
+# В других терминалах:
+.\mvnw.cmd -pl collection-service spring-boot:run
+.\mvnw.cmd -pl starship-service spring-boot:run
+```
+
+Проверка конфигураций: `http://localhost:8888/collection-service/default` и
+`http://localhost:8888/starship-service/default`. Клиенты получают настройки при запуске.
+Для применения изменений перезапустите сервер и клиенты; автоматическое обновление не настроено.
+Другой адрес сервера задаётся через `CONFIG_SERVER_URL`. Импорт обязателен: Config Server должен быть доступен при запуске обоих сервисов. В локальных `application.properties` оставлены только имя приложения и импорт конфигурации. Тесты используют отдельные файлы из `src/test/resources` и отключают Config Client.
+Переменные окружения клиентов (`DB_URL`, `DB_USER`, `DB_PASSWORD`, `COLLECTION_URL`, `PORT`)
+переопределяют настройки. Config Server передаёт только ссылку `${DB_PASSWORD}`; значение пароля задаётся в окружении клиента, без значения по умолчанию.
+
+В Docker Compose сервер запускается автоматически, клиенты требуют его доступности и повторяют
+подключение до 20 раз. Порт 8888 опубликован только на localhost.
+Для внешней папки конфигураций задайте серверу `CONFIG_REPOSITORY=file:/absolute/path/`;
+в контейнере дополнительно смонтируйте эту папку. По умолчанию файлы включены в JAR.
+
+Документация: [Config Client](https://docs.spring.io/spring-cloud-config/reference/client.html),
+[Native backend](https://docs.spring.io/spring-cloud-config/reference/server/environment-repository/file-system-backend.html).
 
 ## Contract First
 

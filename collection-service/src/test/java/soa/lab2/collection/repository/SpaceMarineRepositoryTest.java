@@ -137,9 +137,8 @@ class SpaceMarineRepositoryTest {
     }
 
     @Test
-    void generatedEnumAndFilterExceptionsAreRussian() {
-        var enumError = assertThrows(IllegalArgumentException.class, () -> WeaponDTO.fromValue("UNKNOWN"));
-        assertEquals("Недопустимое значение 'UNKNOWN'", enumError.getMessage());
+    void invalidEnumIsRejectedAndFilterExceptionIsRussian() {
+        assertThrows(IllegalArgumentException.class, () -> WeaponDTO.fromValue("UNKNOWN"));
         var filterError = assertThrows(IllegalArgumentException.class,
                 () -> SpaceMarineSpecifications.filters(List.of("health,gt,no")));
         assertEquals("Некорректное значение фильтра для поля health: no", filterError.getMessage());

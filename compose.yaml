@@ -1,4 +1,11 @@
 services:
+  config-server:
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
+    ports:
+      - "127.0.0.1:8888:8888"
+
   db:
     image: postgres:16-alpine
     environment:
@@ -20,12 +27,18 @@ services:
       context: .
       dockerfile: collection-service/Dockerfile
     environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CLOUD_CONFIG_FAIL_FAST: 'true'
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS: 20
       DB_URL: jdbc:postgresql://db:5432/space_marine
       DB_USER: root
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD before starting Compose}
     ports:
       - "8081:8081"
     depends_on:
+      config-server:
+        condition: service_started
       db:
         condition: service_healthy
 
@@ -34,6 +47,10 @@ services:
       context: .
       dockerfile: starship-service/Dockerfile
     environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CLOUD_CONFIG_FAIL_FAST: 'true'
+      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS: 20
       DB_URL: jdbc:postgresql://db:5432/space_marine
       DB_USER: root
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD before starting Compose}
@@ -41,6 +58,8 @@ services:
     ports:
       - "8082:8082"
     depends_on:
+      config-server:
+        condition: service_started
       db:
         condition: service_healthy
       collection-service:
