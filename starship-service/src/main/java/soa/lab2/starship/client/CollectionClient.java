@@ -3,7 +3,6 @@ package soa.lab2.starship.client;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -13,8 +12,6 @@ import soa.lab2.starship.dto.SpaceMarineDTO;
 import soa.lab2.starship.mapper.StarshipMapper;
 import soa.lab2.starship.model.SpaceMarine;
 
-import java.net.http.HttpClient;
-import java.time.Duration;
 
 @Component
 public class CollectionClient {
@@ -22,11 +19,9 @@ public class CollectionClient {
     private final StarshipMapper mapper;
 
     @Autowired
-    public CollectionClient(@Value("${collection.base-url}") String baseUrl, StarshipMapper mapper) {
-        var factory = new JdkClientHttpRequestFactory(HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(3)).build());
-        factory.setReadTimeout(Duration.ofSeconds(5));
-        this.client = RestClient.builder().baseUrl(baseUrl).requestFactory(factory).build();
+    public CollectionClient(RestClient.Builder builder,
+                            @Value("${collection.base-url}") String baseUrl, StarshipMapper mapper) {
+        this.client = builder.clone().baseUrl(baseUrl).build();
         this.mapper = mapper;
     }
 
@@ -42,6 +37,8 @@ public class CollectionClient {
                 throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Сервис коллекции вернул пустой ответ");
             return mapper.toModel(dto);
         } catch (RestClientResponseException ex) {
+            if (ex.getStatusCode().value() == 503)
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Сервис коллекции недоступен", ex);
             if (ex.getStatusCode().value() == 404)
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Десантник не найден");
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Сервис коллекции вернул ошибку");

@@ -6,6 +6,8 @@
     <packaging>pom</packaging>
     <modules>
         <module>config-server</module>
+        <module>eureka-server</module>
+        <module>api-gateway</module>
         <module>collection-service</module>
         <module>starship-service</module>
     </modules>

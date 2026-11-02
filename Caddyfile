@@ -1,16 +1,14 @@
 :80 {
-    handle_path /api/collection-service/* {
-        rewrite * /api/v1{path}
-        reverse_proxy collection-service:8081
-    }
-
-    handle_path /api/starship-service/* {
-        rewrite * /api/v1{path}
-        reverse_proxy starship-service:8082
-    }
-
     handle /api/* {
-        respond "Unknown API service" 404
+        reverse_proxy api-gateway:8080
+    }
+
+    handle /collection-service/* {
+        reverse_proxy api-gateway:8080
+    }
+
+    handle /starship-service/* {
+        reverse_proxy api-gateway:8080
     }
 
     handle {

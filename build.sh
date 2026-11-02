@@ -7,6 +7,8 @@ mkdir -p dist
 
 mvn -B -f collection-service/pom.xml -DskipTests package
 mvn -B -f starship-service/pom.xml -DskipTests package
+mvn -B -f api-gateway/pom.xml -DskipTests package
 
 cp collection-service/target/*.war dist/
 cp starship-service/target/*.war dist/
+cp api-gateway/target/api-gateway-1.0.0.jar dist/

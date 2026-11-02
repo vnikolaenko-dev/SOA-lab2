@@ -1,4 +1,33 @@
 services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    ports:
+      - "8080:8080"
+    depends_on:
+      config-server:
+        condition: service_started
+      eureka-server:
+        condition: service_started
+    restart: on-failure
+
+  eureka-server:
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+    ports:
+      - "127.0.0.1:8761:8761"
+    depends_on:
+      config-server:
+        condition: service_started
+    restart: on-failure
+
   config-server:
     build:
       context: .
@@ -27,6 +56,7 @@ services:
       context: .
       dockerfile: collection-service/Dockerfile
     environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8888
       SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
       SPRING_CLOUD_CONFIG_FAIL_FAST: 'true'
@@ -34,9 +64,11 @@ services:
       DB_URL: jdbc:postgresql://db:5432/space_marine
       DB_USER: root
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD before starting Compose}
-    ports:
-      - "8081:8081"
+    expose:
+      - "8081"
     depends_on:
+      eureka-server:
+        condition: service_started
       config-server:
         condition: service_started
       db:
@@ -47,6 +79,7 @@ services:
       context: .
       dockerfile: starship-service/Dockerfile
     environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8888
       SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
       SPRING_CLOUD_CONFIG_FAIL_FAST: 'true'
@@ -54,15 +87,18 @@ services:
       DB_URL: jdbc:postgresql://db:5432/space_marine
       DB_USER: root
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD before starting Compose}
-      COLLECTION_URL: http://collection-service:8081/api/v1
-    ports:
-      - "8082:8082"
+    expose:
+      - "8082"
     depends_on:
+      eureka-server:
+        condition: service_started
       config-server:
         condition: service_started
       db:
         condition: service_healthy
       collection-service:
+        condition: service_started
+      api-gateway:
         condition: service_started
 
   caddy:
@@ -74,8 +110,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - collection-service
-      - starship-service
+      - api-gateway
 
 volumes:
   postgres_data:

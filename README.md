@@ -10,6 +10,62 @@
 | collection-service | 8081 | CRUD SpaceMarine, фильтры, сортировка, пагинация, дополнительные операции |
 | starship-service   | 8082 | Посадка, высадка, просмотр экипажа и список кораблей                      |
 
+## API Gateway: Zuul Proxy
+
+Все обращения к бизнес-сервисам проходят через отдельный модуль api-gateway:
+- Клиент → Caddy :80 → Zuul :8080 → Ribbon → Collection / Starship.
+- Starship → Ribbon → Zuul → Ribbon → Collection.
+
+Zuul использует Spring Boot 2.3.12, Spring Cloud Hoxton.SR12 и Java 11 (в Docker). Остальные модули используют Spring Boot 3.5 и Java 21. Сборку всего проекта можно выполнять JDK 21. Старый стек изолирован в gateway, потому что Zuul starter использует javax.servlet и отсутствует в современном Spring Cloud.
+
+Публичные адреса:
+- http://localhost:8080/api/collection-service/space-marines
+- http://localhost:8080/api/starship-service/starships
+- http://localhost:8080/collection-service/openapi.yaml
+- http://localhost:8080/starship-service/openapi.yaml
+- http://localhost:8080/collection-service/swagger-ui/index.html
+- http://localhost:8080/starship-service/swagger-ui/index.html
+
+Те же пути доступны через Caddy на порту 80. Префикс /api/{service} заменяется Zuul на /api/v1. Маршруты /{service}/ сохраняют полный путь ресурса. Неизвестные сервисы не маршрутизируются. В Compose порты бизнес-сервисов не опубликованы. Config Server и Eureka доступны на localhost для инфраструктуры и диагностики.
+
+Порядок запуска: Config Server → Eureka → Zuul → бизнес-сервисы; дождитесь появления API-GATEWAY, COLLECTION-SERVICE и STARSHIP-SERVICE в Eureka. Gateway получает конфигурацию через bootstrap.properties, остальные сервисы — через spring.config.import. Starship использует collection.base-url=http://api-gateway/api/collection-service. В каждом Starship Ribbon выбирает экземпляр gateway; внутри Zuul Ribbon выбирает экземпляр бизнес-сервиса. Повторы запросов выключены, в том числе для POST/PATCH.
+
+Проверка: .\mvnw.cmd -pl api-gateway,collection-service,starship-service verify.
+GatewayRoutingTest запускает настоящий Zuul на случайном порту и три HTTP-сервера вместо upstream: проверяет GET/POST/PATCH/DELETE, JSON, query, заголовки, 404/409, два экземпляра Collection, ресурсные пути и вложенный вызов Starship → Zuul → Collection. Эти проверки не подтверждают регистрацию настоящих сервисов в Eureka и работу БД.
+
+## Service Discovery: Eureka
+
+`eureka-server` на порту 8761 хранит реестр экземпляров `collection-service` и `starship-service`.
+Клиенты регистрируются под своим `spring.application.name` и отправляют heartbeat.
+Eureka хранит реестр адресов. Starship обращается к http://api-gateway/api/collection-service через свой Ribbon. Zuul находит Collection через Eureka и выбирает его экземпляр через Ribbon. Все бизнес-запросы проходят через gateway; Caddy передаёт API-запросы только в Zuul.
+
+Порядок локального запуска в отдельных терминалах:
+
+```powershell
+.\mvnw.cmd -pl config-server spring-boot:run
+.\mvnw.cmd -pl eureka-server spring-boot:run
+.\mvnw.cmd -pl api-gateway spring-boot:run
+# После запуска инфраструктуры, с DB_PASSWORD в окружении каждого приложения:
+.\mvnw.cmd -pl collection-service spring-boot:run
+.\mvnw.cmd -pl starship-service spring-boot:run
+```
+
+Панель: <http://localhost:8761/>. Реестр: <http://localhost:8761/eureka/apps>.
+В панели ожидаются `COLLECTION-SERVICE` и `STARSHIP-SERVICE` со статусом UP.
+Настройки клиентов и сервера Eureka находятся в `config-server/src/main/resources/config-repository/`.
+Адрес Eureka переопределяется переменной `EUREKA_URL` (по умолчанию `http://localhost:8761/eureka/`).
+В Compose используется `http://eureka-server:8761/eureka/`; сервисы публикуют свои IP и порты внутри Docker-сети.
+Порт панели опубликован только на localhost. Локальные и Docker-экземпляры запускайте как отдельные окружения,
+чтобы клиенты могли обращаться ко всем адресам, зарегистрированным в своём реестре.
+
+Config Server находится по известному URL: сначала загружаются настройки, затем включается Eureka.
+Сам Config Server не регистрируется в Eureka, что исключает циклическую зависимость при запуске.
+Eureka Server получает настройки из Config Server и не регистрируется сам у себя.
+Caddy передаёт запросы в api-gateway:8080; gateway маршрутизирует их по service ID через Eureka и Ribbon.
+
+Документация: [Spring Cloud Netflix](https://docs.spring.io/spring-cloud-netflix/reference/spring-cloud-netflix.html),
+[Eureka](https://spring.io/projects/spring-cloud-netflix/).
+
 ## Spring Cloud Config
 
 Модуль `config-server` (порт 8888) использует Spring Cloud 2025.0.3 и native backend:
@@ -29,8 +85,8 @@
 Проверка конфигураций: `http://localhost:8888/collection-service/default` и
 `http://localhost:8888/starship-service/default`. Клиенты получают настройки при запуске.
 Для применения изменений перезапустите сервер и клиенты; автоматическое обновление не настроено.
-Другой адрес сервера задаётся через `CONFIG_SERVER_URL`. Импорт обязателен: Config Server должен быть доступен при запуске обоих сервисов. В локальных `application.properties` оставлены только имя приложения и импорт конфигурации. Тесты используют отдельные файлы из `src/test/resources` и отключают Config Client.
-Переменные окружения клиентов (`DB_URL`, `DB_USER`, `DB_PASSWORD`, `COLLECTION_URL`, `PORT`)
+Другой адрес сервера задаётся через `CONFIG_SERVER_URL`. Импорт обязателен: Config Server должен быть доступен при запуске обоих сервисов. В локальных `application.properties` оставлены только имя приложения и импорт конфигурации.
+Переменные окружения клиентов (`DB_URL`, `DB_USER`, `DB_PASSWORD`, `EUREKA_URL`, `PORT`)
 переопределяют настройки. Config Server передаёт только ссылку `${DB_PASSWORD}`; значение пароля задаётся в окружении клиента, без значения по умолчанию.
 
 В Docker Compose сервер запускается автоматически, клиенты требуют его доступности и повторяют
@@ -76,8 +132,7 @@ $env:DB_USER = 'postgres'
 $env:DB_PASSWORD = 'ваш пароль'
 ```
 
-Также поддерживаются `DB_URL`, `PORT`, а для второго сервиса `COLLECTION_URL` (по умолчанию
-`http://localhost:8081/api/v1`). Flyway создаёт схемы `collection` и `starship` и таблицы автоматически. Пользователю БД
+Также поддерживаются `DB_URL`, `PORT` и `EUREKA_URL`. Второй сервис обращается к первому по логическому имени `collection-service` через Netflix Ribbon. Flyway создаёт схемы `collection` и `starship` и таблицы автоматически. Пользователю БД
 нужны права создавать схемы и таблицы. Первый сервис хранит десантников в обычных столбцах через JPA-сущность
 `model.SpaceMarine`: `Coordinates` и `Chapter` являются встраиваемыми объектами `@Embeddable`, типы оружия - enum.
 Второй хранит JPA-сущности `model.Boarding` в собственной схеме и обращается к первому через `client.CollectionClient`,
@@ -138,11 +193,7 @@ Spring Data репозиториями; отдельные Spring-бины ре�
 сохраняет результат через JPA merge. Для Hibernate сохранены protected-конструкторы без аргументов и доступ к полям. DTO
 продолжают генерироваться из OpenAPI.
 
-`clean verify` выполняет MVC-тесты контрактных маршрутов и валидации, тест сохранения id/creationDate при обновлении,
-тесты HTTP-взаимодействия сервисов, а также интеграционные тесты Hibernate и репозиториев на H2: сохранение и чтение
-вложенных объектов, фильтры, enum, сортировка, пагинация, удаление и уникальность посадки. H2 используется только в
-тестах; приложения подключаются к PostgreSQL. PostgreSQL-миграции и запуск на вашей БД требуют действительных
-DB_USER/DB_PASSWORD.
+`clean verify` генерирует API из OpenAPI, компилирует и упаковывает приложения. Тесты проверяют Ribbon и HTTP-маршрутизацию Zuul. Проверка запуска с PostgreSQL требует действительных DB_USER/DB_PASSWORD.
 
 ## Сборка и запуск
 
@@ -154,13 +205,13 @@ docker compose up --build -d
 ```
 
 Compose создаёт базу `space_marine`; Flyway создаёт схемы и таблицы. Данные PostgreSQL хранятся в томе
-`postgres_data`. Сервисы доступны на портах `8081` и `8082`, PostgreSQL - на `5432` (можно изменить порт хоста через
+`postgres_data`. Бизнес-сервисы доступны через Zuul на порту `8080`; порты `8081` и `8082` не опубликованы, PostgreSQL - на `5432` (можно изменить порт хоста через
 `DB_PORT`). Caddy слушает порт `80` (или `CADDY_PORT`) и перенаправляет запросы:
 
 | Внешний путь                              | Адрес назначения                                 |
 | ----------------------------------------- | ------------------------------------------------ |
-| `/api/collection-service/space-marines`   | `collection-service:8081/api/v1/space-marines`   |
-| `/api/starship-service/starship/1/load/1` | `starship-service:8082/api/v1/starship/1/load/1` |
+| `/api/collection-service/space-marines`   | Zuul → Ribbon → `collection-service:8081/api/v1/space-marines`   |
+| `/api/starship-service/starship/1/load/1` | Zuul → Ribbon → `starship-service:8082/api/v1/starship/1/load/1` |
 | Любой другой путь                         | фронтенд на хосте, порт `3000`                   |
 
 Фронтенд должен быть доступен из контейнера через `host.docker.internal:3000`; на Linux обычно требуется слушать
@@ -173,7 +224,7 @@ Compose создаёт базу `space_marine`; Flyway создаёт схемы
 работает `mvn clean verify`. Каждый дочерний проект можно собирать отдельно через собственный pom.xml, например
 `./mvnw.cmd -f collection-service/pom.xml clean verify`.
 
-В двух терминалах:
+После запуска Config Server, Eureka и gateway запустите бизнес-сервисы в двух отдельных терминалах:
 
 ```powershell
 java -jar collection-service/target/collection-service-1.0.0.war
@@ -182,9 +233,9 @@ java -jar starship-service/target/starship-service-1.0.0.war
 
 Оба артефакта — исполняемые WAR: их можно запускать командой `java -jar` или развёртывать во внешнем Servlet-контейнере.
 
-Контракты доступны по `http://localhost:8081/openapi.yaml` и `http://localhost:8082/openapi.yaml`.
+Контракты доступны по `http://localhost:8080/collection-service/openapi.yaml` и `http://localhost:8080/starship-service/openapi.yaml`.
 
-Swagger UI: `http://localhost:8081/swagger-ui/index.html` для коллекции и `http://localhost:8082/swagger-ui/index.html`
+Swagger UI: `http://localhost:8080/collection-service/swagger-ui/index.html` для коллекции и `http://localhost:8080/starship-service/swagger-ui/index.html`
 для кораблей. UI загружает исходный контракт `/openapi.yaml`. Страницы доступны после успешного запуска сервиса: при
 ошибке аутентификации PostgreSQL (28P01) Flyway останавливает запуск приложения, поэтому сначала нужно исправить
 DB_USER/DB_PASSWORD.
@@ -193,13 +244,13 @@ DB_USER/DB_PASSWORD.
 
 ```powershell
 $marine = '{"name":"Marine","coordinates":{"x":1.5,"y":10},"health":100,"weaponType":"COMBI_FLAMER","chapter":{"name":"Ultramarines","world":"Macragge"}}'
-Invoke-RestMethod http://localhost:8081/api/v1/space-marines -Method Post -ContentType application/json -Body $marine
-Invoke-RestMethod 'http://localhost:8081/api/v1/space-marines?page=0&size=10&sort=health,desc&filter=health,gt,50'
-Invoke-RestMethod http://localhost:8081/api/v1/space-marines/1 -Method Patch -ContentType application/json -Body '{"health":80,"meleeWeapon":null}'
-Invoke-RestMethod http://localhost:8082/api/v1/starship/1/load/1 -Method Post
-Invoke-RestMethod 'http://localhost:8082/api/v1/starships?page=0&size=10'
-Invoke-RestMethod 'http://localhost:8082/api/v1/starship/1/space-marines?page=0&size=10&filter=health,gt,50'
-Invoke-RestMethod http://localhost:8082/api/v1/starship/1/unload-all -Method Post
+Invoke-RestMethod http://localhost:8080/api/collection-service/space-marines -Method Post -ContentType application/json -Body $marine
+Invoke-RestMethod 'http://localhost:8080/api/collection-service/space-marines?page=0&size=10&sort=health,desc&filter=health,gt,50'
+Invoke-RestMethod http://localhost:8080/api/collection-service/space-marines/1 -Method Patch -ContentType application/json -Body '{"health":80,"meleeWeapon":null}'
+Invoke-RestMethod http://localhost:8080/api/starship-service/starship/1/load/1 -Method Post
+Invoke-RestMethod 'http://localhost:8080/api/starship-service/starships?page=0&size=10'
+Invoke-RestMethod 'http://localhost:8080/api/starship-service/starship/1/space-marines?page=0&size=10&filter=health,gt,50'
+Invoke-RestMethod http://localhost:8080/api/starship-service/starship/1/unload-all -Method Post
 ```
 
 Список `/starships` строится из уникальных `starship_id` в таблице `boarding`. Корабль без записей о посадке в нём не появится.
@@ -222,3 +273,39 @@ chapter.parentLegion, chapter.world. Несколько фильтров объ�
 Ограничения DTO проверяются автоматически (400), конфликты состояния дают 409, ненайденный десантник - 404. При
 недоступности первого API второй возвращает ApiError с 503, при ошибке его ответа - 502 (инфраструктурные ответы сверх
 исходного контракта).
+
+## Netflix Ribbon
+
+Конфигурация HTTP-клиента: `starship-service/src/main/java/soa/lab2/starship/client/CollectionClientConfiguration.java`.
+Использование: `CollectionClient.java`; logical URL задаётся в Config Server, `starship-service.properties`.
+Подробная карта, полный код, разбор запроса и интерактивная модель round robin: [архитектура](docs/architecture.html#loadbalancer).
+Для двух локальных экземпляров Collection запустите второй с `PORT=8083` в отдельном терминале; не меняйте `spring.application.name`.
+В Compose порт Collection не опубликован, поэтому можно запустить два экземпляра: `docker compose up -d --scale collection-service=2`. Оба регистрируются в Eureka; экземпляр выбирает Ribbon внутри Zuul.
+
+Ribbon подключён напрямую (ribbon-core и ribbon-loadbalancer 2.7.18), поскольку старый Spring Cloud Netflix Ribbon starter отсутствует в Spring Cloud 2025. Eureka и Config Server сохранены. Балансировщик работает внутри вызывающего starship-service; collection-service менять не требуется. При пустом реестре клиент возвращает 503. Проверки: .\mvnw.cmd -pl starship-service test (чередование экземпляров, сохранение URI, обновление списка и пустой реестр).
+
+## Подробная интерактивная документация
+
+[Открыть HTML-разбор архитектуры](docs/architecture.html) можно прямо как локальный файл: интернет не нужен. На странице есть описание технологий, переключаемая карта потоков, пошаговые сценарии, модели Ribbon/Eureka, поиск по технологиям и текущий код проекта.
+
+Обновить снимки кода и результаты сквозного теста:
+
+~~~powershell
+node scripts/build-architecture.mjs
+~~~
+
+Повторить сквозной тест настоящих Config Server, Eureka, Zuul, бизнес-сервисов и временной PostgreSQL:
+
+~~~powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-gateway.ps1
+~~~
+
+Отчёт и логи: api-gateway/target/live-verification/. Скрипт использует JAVA_HOME, временные порты и собственный контейнер БД, останавливает созданные процессы при завершении. Не использует рабочую базу проекта.
+
+Проверить HTML в установленном Chromium-браузере:
+
+~~~powershell
+node scripts/verify-architecture.mjs
+~~~
+
+Для нестандартного пути браузера задайте CHROME_PATH. Скриншоты и отчёт: api-gateway/target/html-verification/. Страница генерируется из docs/architecture.template.html и встроенных исходников.

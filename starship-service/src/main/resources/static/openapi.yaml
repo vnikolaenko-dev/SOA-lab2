@@ -24,7 +24,7 @@ info:
     name: Space Marine Team
 security: []
 servers:
-  - url: /api/v1/
+  - url: /api/starship-service/
     description: Корень API
 tags:
   - name: Space Marines Collection
