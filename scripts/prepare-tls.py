@@ -11,7 +11,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 CERTS = ROOT / 'certs'
 JAVA_SERVICES = ('config-server', 'eureka-server', 'api-gateway', 'collection-service', 'starship-service')
-SERVICES = (*JAVA_SERVICES, 'haproxy', 'caddy')
+SERVICES = (*JAVA_SERVICES, 'haproxy', 'caddy', 'soa-front')
 
 
 def run(*args, **kwargs):

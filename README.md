@@ -4,7 +4,8 @@
 
 Внутренние соединения Config Server, Eureka, Zuul, Collection, Starship и HAProxy,
 а также Caddy → Zuul работают по HTTPS с проверкой CA и имени сервера.
-PostgreSQL и JDBC URL не изменены. Внешний фронтенд на хосте :3000 остаётся HTTP-upstream.
+PostgreSQL и JDBC URL не изменены. Фронтенд `soa-front` работает в Compose:
+Caddy → фронтенд → gateway также используют HTTPS с проверкой сертификатов.
 
 ```bash
 python3 scripts/prepare-tls.py
@@ -12,7 +13,7 @@ docker compose up --build -d
 curl --cacert certs/ca/root-ca.crt https://localhost/api/starship-service/starships
 ```
 
-Caddy доступен на `https://localhost`, gateway — `https://localhost:8080`,
+Приложение доступно на **https://helios.hw.zin** (также локально на `https://localhost`), gateway — `https://localhost:8080`,
 Eureka — `https://localhost:8761`, Config Server — `https://localhost:8888`.
 Caddy перенаправляет HTTP на HTTPS. Для браузера импортируйте `certs/ca/root-ca.crt`
 в доверенные центры сертификации вашей системы/браузера.
@@ -21,6 +22,10 @@ Caddy перенаправляет HTTP на HTTPS. Для браузера им
 Скрипт подготовки создаёт пароль TLS-хранилищ в `.env`, если он ещё не задан.
 После перевыпуска сертификатов повторите подготовку и пересоздайте контейнеры.
 Подробности и сроки действия: [certs/README.md](certs/README.md).
+
+Для развёртывания на helios.hw.zin направьте DNS на сервер и откройте TCP-порты 80/443.
+Папку `certs/` и файл `.env` нужно перенести отдельно: они исключены из Git.
+На клиентских машинах должен быть доверенным `certs/ca/root-ca.crt`.
 
 Примеры HTTP и схемы ниже описывают локальный запуск и прежнюю архитектуру;
 для текущего Compose используйте HTTPS-адреса выше.
@@ -267,10 +272,9 @@ Compose создаёт базу `space_marine`; Flyway создаёт схемы
 | ----------------------------------------- | ------------------------------------------------ |
 | `/api/collection-service/space-marines`   | Zuul → Ribbon → `collection-service:8081/api/v1/space-marines`   |
 | `/api/starship-service/starship/1/load/1` | Zuul → HAProxy → `starship-service:8082/api/v1/starship/1/load/1` |
-| Любой другой путь                         | фронтенд на хосте, порт `3000`                   |
+| Любой другой путь                         | `https://soa-front:3000`                         |
 
-Фронтенд должен быть доступен из контейнера через `host.docker.internal:3000`; на Linux обычно требуется слушать
-`0.0.0.0`, а не только `localhost`. Для остановки используйте `docker compose down`.
+Фронтенд собирается из `soa-front/` и доступен через Caddy по HTTPS; серверные функции вызывают API через gateway. Для остановки используйте `docker compose down`.
 
 Для запуска без Docker:
 

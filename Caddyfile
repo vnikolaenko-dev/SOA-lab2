@@ -7,7 +7,7 @@
 	}
 }
 
-https://localhost, https://127.0.0.1, https://caddy {
+https://helios.hw.zin, https://localhost, https://127.0.0.1, https://caddy {
 	tls /certs/service/fullchain.pem /certs/service/tls.key
 
 	handle /api/* {
@@ -23,10 +23,15 @@ https://localhost, https://127.0.0.1, https://caddy {
 	}
 
 	handle {
-		reverse_proxy host.docker.internal:3000
+		reverse_proxy https://soa-front:3000 {
+			transport http {
+				tls_server_name soa-front
+				tls_trust_pool file /certs/ca/root-ca.crt
+			}
+		}
 	}
 }
 
 :80 {
-	redir https://localhost:{$CADDY_HTTPS_PORT:443}{uri} permanent
+	redir https://helios.hw.zin:{$CADDY_HTTPS_PORT:443}{uri} permanent
 }

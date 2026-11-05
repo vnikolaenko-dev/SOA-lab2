@@ -161,6 +161,25 @@ services:
         condition: service_started
     restart: on-failure
 
+  soa-front:
+    build:
+      context: ./soa-front
+      dockerfile: Dockerfile
+    environment:
+      NODE_OPTIONS: --max-old-space-size=128
+      NODE_EXTRA_CA_CERTS: /certs/ca/root-ca.crt
+      SPACE_MARINES_API_URL: https://api-gateway:8080/collection-service
+      STARSHIPS_API_URL: https://api-gateway:8080/starship-service
+    volumes:
+      - ./certs/soa-front:/certs/service:ro
+      - ./certs/ca/root-ca.crt:/certs/ca/root-ca.crt:ro
+    expose:
+      - "3000"
+    depends_on:
+      api-gateway:
+        condition: service_started
+    restart: on-failure
+
   caddy:
     image: caddy:2-alpine
     environment:
@@ -172,10 +191,9 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./certs/caddy:/certs/service:ro
       - ./certs/ca:/certs/ca:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
       - api-gateway
+      - soa-front
 
 volumes:
   postgres_data:
