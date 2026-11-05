@@ -13,8 +13,9 @@
 ## API Gateway: Zuul Proxy
 
 Все обращения к бизнес-сервисам проходят через отдельный модуль api-gateway:
-- Клиент → Caddy :80 → Zuul :8080 → Ribbon → Collection / Starship.
-- Starship → Ribbon → Zuul → Ribbon → Collection.
+- Клиент → Caddy :80 → Zuul :8080 → HAProxy :8082 → Starship (в Docker Compose).
+- Клиент → Caddy :80 → Zuul :8080 → Ribbon → Collection.
+- Starship → Collection по адресу `COLLECTION_URL`.
 
 Zuul использует Spring Boot 2.3.12, Spring Cloud Hoxton.SR12 и Java 11 (в Docker). Остальные модули используют Spring Boot 3.5 и Java 21. Сборку всего проекта можно выполнять JDK 21. Старый стек изолирован в gateway, потому что Zuul starter использует javax.servlet и отсутствует в современном Spring Cloud.
 
@@ -195,6 +196,34 @@ Spring Data репозиториями; отдельные Spring-бины ре�
 
 `clean verify` генерирует API из OpenAPI, компилирует и упаковывает приложения. Тесты проверяют Ribbon и HTTP-маршрутизацию Zuul. Проверка запуска с PostgreSQL требует действительных DB_USER/DB_PASSWORD.
 
+## Starship: Spring Boot JAR и HAProxy
+
+`starship-service` использует Java 21 и встроенный Tomcat из `spring-boot-starter-web`.
+Сборка: `bash ./mvnw -f starship-service/pom.xml clean verify`.
+Результат: `starship-service/target/starship-service-1.0.0.jar`; Docker запускает его командой `java -jar /app/app.jar`.
+
+`compose.yaml` запускает два экземпляра Starship и HAProxy с конфигурацией [haproxy.cfg](haproxy.cfg)
+из корня проекта. Оба маршрута Zuul (`/api/starship-service/**` и `/starship-service/**`)
+направлены на `http://haproxy:8082`. HAProxy сохраняет пути запросов и распределяет их по round robin.
+HTTP-проверка `GET /api/v1/starships` исключает недоступные экземпляры; Docker DNS обновляет адреса
+после пересоздания контейнеров. Автоматические повторы запросов в HAProxy выключены.
+
+Starship использует общую PostgreSQL-схему `starship`, а адрес Collection получает из `COLLECTION_URL`
+(в Compose — `http://collection-service:8081/api/v1`). В текущем Starship нет клиентов Eureka,
+Config Server и Ribbon; упоминания этих клиентов ниже относятся к прежней архитектуре.
+
+```bash
+docker compose up --build -d
+# Изменить число экземпляров (HAProxy настроен максимум на 10):
+docker compose up -d --scale starship-service=3
+# Посмотреть выбранные серверы starship_instances/starshipN в HTTP-логах:
+docker compose logs -f haproxy
+curl http://localhost:8080/api/starship-service/starships
+```
+
+HAProxy и Starship доступны внутри Docker-сети на порту 8082; вход с хоста — через Zuul :8080 или Caddy.
+При запуске без Docker запросы можно отправлять непосредственно на Starship :8082.
+
 ## Сборка и запуск
 
 Для запуска обоих сервисов, PostgreSQL и Caddy в Docker задайте пароль БД и выполните из корня проекта:
@@ -211,7 +240,7 @@ Compose создаёт базу `space_marine`; Flyway создаёт схемы
 | Внешний путь                              | Адрес назначения                                 |
 | ----------------------------------------- | ------------------------------------------------ |
 | `/api/collection-service/space-marines`   | Zuul → Ribbon → `collection-service:8081/api/v1/space-marines`   |
-| `/api/starship-service/starship/1/load/1` | Zuul → Ribbon → `starship-service:8082/api/v1/starship/1/load/1` |
+| `/api/starship-service/starship/1/load/1` | Zuul → HAProxy → `starship-service:8082/api/v1/starship/1/load/1` |
 | Любой другой путь                         | фронтенд на хосте, порт `3000`                   |
 
 Фронтенд должен быть доступен из контейнера через `host.docker.internal:3000`; на Linux обычно требуется слушать
@@ -228,10 +257,10 @@ Compose создаёт базу `space_marine`; Flyway создаёт схемы
 
 ```powershell
 java -jar collection-service/target/collection-service-1.0.0.war
-java -jar starship-service/target/starship-service-1.0.0.war
+java -jar starship-service/target/starship-service-1.0.0.jar
 ```
 
-Оба артефакта — исполняемые WAR: их можно запускать командой `java -jar` или развёртывать во внешнем Servlet-контейнере.
+Starship — исполняемый Spring Boot JAR со встроенным Tomcat, запускается через `java -jar`. Collection остаётся исполняемым WAR.
 
 Контракты доступны по `http://localhost:8080/collection-service/openapi.yaml` и `http://localhost:8080/starship-service/openapi.yaml`.
 

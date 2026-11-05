@@ -6,6 +6,7 @@ services:
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_URL: http://eureka-server:8761/eureka/
+      STARSHIP_URL: http://haproxy:8082
     ports:
       - "8080:8080"
     depends_on:
@@ -79,27 +80,30 @@ services:
       context: .
       dockerfile: starship-service/Dockerfile
     environment:
-      EUREKA_URL: http://eureka-server:8761/eureka/
-      CONFIG_SERVER_URL: http://config-server:8888
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
-      SPRING_CLOUD_CONFIG_FAIL_FAST: 'true'
-      SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS: 20
+      COLLECTION_URL: http://collection-service:8081/api/v1
       DB_URL: jdbc:postgresql://db:5432/space_marine
       DB_USER: root
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD before starting Compose}
     expose:
       - "8082"
+    deploy:
+      replicas: 2
     depends_on:
-      eureka-server:
-        condition: service_started
-      config-server:
-        condition: service_started
       db:
         condition: service_healthy
       collection-service:
         condition: service_started
-      api-gateway:
+
+  haproxy:
+    image: haproxy:3.2-alpine
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    expose:
+      - "8082"
+    depends_on:
+      starship-service:
         condition: service_started
+    restart: on-failure
 
   caddy:
     image: caddy:2-alpine

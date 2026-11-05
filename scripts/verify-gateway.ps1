@@ -79,25 +79,24 @@ try {
     $starshipPort = Free-Port
     $env:CONFIG_SERVER_URL = "http://localhost:$configPort"
     $env:EUREKA_URL = "http://localhost:$discoveryPort/eureka/"
+    $env:STARSHIP_URL = "http://localhost:$starshipPort"
+    $env:COLLECTION_URL = "http://localhost:$gatewayPort/api/collection-service"
     Start-App 'config-server' 'config-server-1.0.0.jar' $configPort | Out-Null
     Wait-Url "$env:CONFIG_SERVER_URL/api-gateway/default"
-    $remoteConfig = Invoke-RestMethod "$env:CONFIG_SERVER_URL/starship-service/default"
-    Check 'Config Server supplies gateway URL to Starship' `
-        ($remoteConfig.propertySources[0].source.'collection.base-url' -eq 'http://api-gateway/api/collection-service')
     Start-App 'eureka-server' 'eureka-server-1.0.0.jar' $discoveryPort `
         @('--eureka.server.response-cache-update-interval-ms=1000', '--eureka.server.use-read-only-response-cache=false') | Out-Null
     Wait-Url "http://localhost:$discoveryPort/"
     Start-App 'api-gateway' 'api-gateway-1.0.0.jar' $gatewayPort `
         @('--ribbon.ServerListRefreshInterval=1000') | Out-Null
     Start-App 'collection-service' 'collection-service-1.0.0.war' $collectionPort | Out-Null
-    Start-App 'starship-service' 'starship-service-1.0.0.war' $starshipPort | Out-Null
+    Start-App 'starship-service' 'starship-service-1.0.0.jar' $starshipPort | Out-Null
     $gateway = "http://localhost:$gatewayPort"
     Wait-Url "$gateway/collection-service/openapi.yaml"
     Wait-Url "$gateway/starship-service/openapi.yaml"
     $registry = Invoke-RestMethod -Headers @{Accept='application/json'} ($env:EUREKA_URL.TrimEnd('/') + '/apps')
     $registered = @($registry.applications.application | ForEach-Object { $_.name })
-    Check 'Eureka contains gateway and both business services' `
-        (($registered -contains 'API-GATEWAY') -and ($registered -contains 'COLLECTION-SERVICE') -and ($registered -contains 'STARSHIP-SERVICE'))
+    Check 'Eureka contains gateway and collection service' `
+        (($registered -contains 'API-GATEWAY') -and ($registered -contains 'COLLECTION-SERVICE'))
     $collectionApi = "$gateway/api/collection-service"
     $starshipApi = "$gateway/api/starship-service"
     Wait-Url "$collectionApi/space-marines"
