@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import '~/lib/zod-locale';
+import { logError } from '~/lib/logger';
 
 export type ServiceError = { status: number; message: string; field?: string };
 export type ApiResult<T> =
@@ -22,6 +23,13 @@ export async function request<T>(
     service === 'marines'
       ? (process.env.SPACE_MARINES_API_URL ?? 'https://localhost:8080/collection-service')
       : (process.env.STARSHIPS_API_URL ?? 'https://localhost:8080/starship-service');
+  const started = Date.now();
+  const context = () => ({
+    service,
+    method: init?.method ?? 'GET',
+    path: path.split('?')[0],
+    elapsedMs: Date.now() - started,
+  });
 
   try {
     // Keep gateway resource prefixes such as /collection-service before /api/v1.
@@ -41,6 +49,13 @@ export async function request<T>(
 
     if (!response.ok) {
       const parsed = apiError.safeParse(body);
+      logError('api.http', new Error(parsed.success
+        ? parsed.data.message
+        : `Upstream returned HTTP ${response.status}`), {
+        ...context(),
+        status: response.status,
+        contentType: response.headers.get('content-type'),
+      });
       return {
         ok: false,
         error: parsed.success
@@ -57,7 +72,13 @@ export async function request<T>(
     }
 
     const parsed = schema.safeParse(body);
-    if (!parsed.success)
+    if (!parsed.success) {
+      logError('api.schema', parsed.error, {
+        ...context(),
+        status: response.status,
+        contentType: response.headers.get('content-type'),
+        issues: parsed.error.issues.map(({ code, path, message }) => ({ code, path, message })),
+      });
       return {
         ok: false,
         error: {
@@ -65,8 +86,10 @@ export async function request<T>(
           message: 'Ответ сервиса не соответствует схеме данных',
         },
       };
+    }
     return { ok: true, data: parsed.data };
-  } catch {
+  } catch (error) {
+    logError('api.request', error, context());
     return {
       ok: false,
       error: {

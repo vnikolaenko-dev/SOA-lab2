@@ -1,3 +1,4 @@
+import { logError } from '~/lib/logger';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -47,7 +48,8 @@ function MarinePage() {
           search: { page: 0, size: 10, filter: [], sort: [] },
         });
       } else setError(response.error);
-    } catch {
+    } catch (error) {
+      logError('ui.action', error, { component: '$id' });
       setError({ status: 0, message: "Не удалось удалить десантника" });
     }
   }

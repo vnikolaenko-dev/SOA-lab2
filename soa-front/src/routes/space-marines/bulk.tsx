@@ -1,3 +1,4 @@
+import { logError } from '~/lib/logger';
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
@@ -43,7 +44,8 @@ function BulkMarinesPage() {
         if (response.created > 0) {
           await queryClient.invalidateQueries({ queryKey: ["marines"] });
         }
-      } catch {
+      } catch (error) {
+        logError('ui.action', error, { component: 'bulk' });
         setRequestError(true);
       }
     },

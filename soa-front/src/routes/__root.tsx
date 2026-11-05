@@ -1,11 +1,12 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   createRootRoute,
   HeadContent,
   Outlet,
   Scripts,
 } from '@tanstack/react-router';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
+import { logError } from '~/lib/logger';
 import '~/lib/zod-locale';
 import '~/styles/app.css';
 
@@ -28,7 +29,25 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => new QueryClient({
+    queryCache: new QueryCache({
+      onError: (error, query) => logError('query.failed', error, { query: query.queryKey[0] }),
+    }),
+    mutationCache: new MutationCache({
+      onError: (error) => logError('mutation.failed', error),
+    }),
+  }));
+
+  useEffect(() => {
+    const onError = (event: ErrorEvent) => logError('browser.error', event.error ?? event.message);
+    const onRejection = (event: PromiseRejectionEvent) => logError('browser.unhandled-rejection', event.reason);
+    window.addEventListener('error', onError);
+    window.addEventListener('unhandledrejection', onRejection);
+    return () => {
+      window.removeEventListener('error', onError);
+      window.removeEventListener('unhandledrejection', onRejection);
+    };
+  }, []);
 
   return (
     <RootDocument>

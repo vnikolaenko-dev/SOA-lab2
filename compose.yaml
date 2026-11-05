@@ -4,9 +4,7 @@ x-java-tls-environment: &java-tls-environment
   SERVER_SSL_KEY_STORE_TYPE: PKCS12
   SERVER_SSL_KEY_STORE_PASSWORD: ${TLS_STORE_PASSWORD:?Run python3 scripts/prepare-tls.py first}
   SERVER_FORWARD_HEADERS_STRATEGY: framework
-  JDK_JAVA_OPTIONS: >-
-    -Xms32m -Xmx128m -XX:+UseSerialGC -XX:ReservedCodeCacheSize=32m -Xss512k
-    @/certs/ca/java-tls.options
+  JDK_JAVA_OPTIONS: '@/certs/ca/java-tls.options'
 
 services:
   api-gateway:
@@ -166,7 +164,6 @@ services:
       context: ./soa-front
       dockerfile: Dockerfile
     environment:
-      NODE_OPTIONS: --max-old-space-size=128
       NODE_EXTRA_CA_CERTS: /certs/ca/root-ca.crt
       SPACE_MARINES_API_URL: https://api-gateway:8080/collection-service
       STARSHIPS_API_URL: https://api-gateway:8080/starship-service

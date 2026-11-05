@@ -1,3 +1,4 @@
+import { logError } from '~/lib/logger';
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -43,7 +44,8 @@ export function MarineBoardingForm({ marineId }: { marineId: number }) {
         const result = await loadMarine({ data: { marineId, starshipId } });
         if (result.ok) await finishBoarding(starshipId);
         else setError(result.error);
-      } catch {
+      } catch (error) {
+        logError('ui.action', error, { component: 'marine-boarding-form' });
         setError({
           status: 0,
           message: "Не удалось посадить десантника на корабль",
@@ -60,7 +62,8 @@ export function MarineBoardingForm({ marineId }: { marineId: number }) {
       const result = await loadMarineInNewStarship({ data: { marineId } });
       if (result.ok) await finishBoarding(result.data.starshipId);
       else setError(result.error);
-    } catch {
+    } catch (error) {
+      logError('ui.action', error, { component: 'marine-boarding-form' });
       setError({
         status: 0,
         message: "Не удалось посадить десантника в новый корабль",

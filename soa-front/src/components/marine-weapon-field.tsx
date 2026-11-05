@@ -1,3 +1,4 @@
+import { logError } from '~/lib/logger';
 import { useQueryClient } from '@tanstack/react-query';
 import { Check, Pencil, X } from 'lucide-react';
 import { useState } from 'react';
@@ -78,7 +79,8 @@ export function MarineWeaponField({
         queryClient.invalidateQueries({ queryKey: ['crew'] }),
       ]);
       setEditing(false);
-    } catch {
+    } catch (error) {
+      logError('ui.action', error, { component: 'marine-weapon-field' });
       setError({ status: 0, message: 'Не удалось сохранить оружие' });
     } finally {
       setPending(false);

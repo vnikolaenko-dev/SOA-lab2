@@ -1,3 +1,4 @@
+import { logError } from '~/lib/logger';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { ServiceError } from '~/api/server/http';
@@ -31,7 +32,8 @@ export function CrewActions({ starshipId }: { starshipId: number }) {
         setMessage(`Высажено десантников: ${result.data}`);
         await refresh();
       } else setError(result.error);
-    } catch {
+    } catch (error) {
+      logError('ui.action', error, { component: 'crew-actions' });
       setError({ status: 0, message: 'Не удалось высадить экипаж' });
     }
   }

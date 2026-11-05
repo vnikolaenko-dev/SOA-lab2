@@ -1,3 +1,4 @@
+import { logError } from '~/lib/logger';
 import { useState } from "react";
 import {
   SpaceMarineInput,
@@ -38,7 +39,8 @@ export function MarineForm({
           SpaceMarineInput.parse(marineInput(value)),
         );
         if (!result.ok) setServiceError(result.error);
-      } catch {
+      } catch (error) {
+        logError('ui.action', error, { component: 'marine-form' });
         setServiceError({ status: 0, message: "Не удалось отправить форму" });
       }
     },

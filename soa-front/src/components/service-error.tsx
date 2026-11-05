@@ -1,6 +1,16 @@
 import type { ServiceError } from '~/api/server/http';
+import { useEffect } from 'react';
+import { logError } from '~/lib/logger';
 
 export function ServiceErrorView({ error }: { error?: ServiceError | null }) {
+  const status = error?.status;
+  const message = error?.message;
+  const field = error?.field;
+  useEffect(() => {
+    if (message !== undefined) {
+      logError('api.result', new Error(message), { status, field });
+    }
+  }, [status, message, field]);
   if (!error) return null;
   return (
     <div
