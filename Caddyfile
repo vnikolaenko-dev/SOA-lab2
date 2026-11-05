@@ -1,17 +1,37 @@
+(gateway) {
+	reverse_proxy https://api-gateway:8080 {
+		transport http {
+			tls_server_name api-gateway
+			tls_trust_pool file /certs/ca/root-ca.crt
+		}
+	}
+}
+
+https://helios.hw.zin, https://localhost, https://127.0.0.1, https://caddy {
+	tls /certs/service/fullchain.pem /certs/service/tls.key
+
+	handle /api/* {
+		import gateway
+	}
+
+	handle /collection-service/* {
+		import gateway
+	}
+
+	handle /starship-service/* {
+		import gateway
+	}
+
+	handle {
+		reverse_proxy https://soa-front:3000 {
+			transport http {
+				tls_server_name soa-front
+				tls_trust_pool file /certs/ca/root-ca.crt
+			}
+		}
+	}
+}
+
 :80 {
-    handle /api/* {
-        reverse_proxy api-gateway:8080
-    }
-
-    handle /collection-service/* {
-        reverse_proxy api-gateway:8080
-    }
-
-    handle /starship-service/* {
-        reverse_proxy api-gateway:8080
-    }
-
-    handle {
-        reverse_proxy host.docker.internal:3000
-    }
+	redir https://helios.hw.zin:{$CADDY_HTTPS_PORT:443}{uri} permanent
 }

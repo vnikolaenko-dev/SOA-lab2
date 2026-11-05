@@ -10,14 +10,17 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 
-/** Makes Location headers usable by clients without exposing upstream addresses. */
 @Component
 public class ApiLocationFilter extends ZuulFilter {
     @Override
-    public String filterType() { return FilterConstants.POST_TYPE; }
+    public String filterType() {
+        return FilterConstants.POST_TYPE;
+    }
 
     @Override
-    public int filterOrder() { return FilterConstants.SEND_RESPONSE_FILTER_ORDER - 1; }
+    public int filterOrder() {
+        return FilterConstants.SEND_RESPONSE_FILTER_ORDER - 1;
+    }
 
     @Override
     public boolean shouldFilter() {
@@ -29,11 +32,13 @@ public class ApiLocationFilter extends ZuulFilter {
     public Object run() {
         RequestContext context = RequestContext.getCurrentContext();
         String service = "collection-api".equals(context.get(FilterConstants.PROXY_KEY))
-                ? "collection-service" : "starship-service";
+                ? "collection-service"
+                : "starship-service";
         List<Pair<String, String>> headers = context.getZuulResponseHeaders();
         for (int i = 0; i < headers.size(); i++) {
             Pair<String, String> header = headers.get(i);
-            if (!"Location".equalsIgnoreCase(header.first())) continue;
+            if (!"Location".equalsIgnoreCase(header.first()))
+                continue;
             URI uri = URI.create(header.second());
             String path = uri.getRawPath();
             if (path != null && (path.equals("/api/v1") || path.startsWith("/api/v1/"))) {
