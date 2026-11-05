@@ -32,7 +32,6 @@ export async function request<T>(
   });
 
   try {
-    // Keep gateway resource prefixes such as /collection-service before /api/v1.
     const url = new URL(`${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`);
     const response = await fetch(url, {
       ...init,

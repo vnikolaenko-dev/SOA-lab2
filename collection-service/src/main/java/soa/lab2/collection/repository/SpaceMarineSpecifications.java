@@ -62,8 +62,6 @@ public class SpaceMarineSpecifications {
         }
     }
 
-    // Значения перечислений хранятся строками; сравнение выполняется по их именам в
-    // API.
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private static Specification<SpaceMarine> condition(String field, String operator, Comparable<?> value) {
         return (root, query, builder) -> {

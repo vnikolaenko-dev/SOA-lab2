@@ -10,9 +10,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 
-/**
- * Makes Location headers usable by clients without exposing upstream addresses.
- */
 @Component
 public class ApiLocationFilter extends ZuulFilter {
     @Override
