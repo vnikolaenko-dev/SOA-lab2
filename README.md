@@ -1,5 +1,31 @@
 # Лабораторная работа 2
 
+## HTTPS в Docker Compose
+
+Внутренние соединения Config Server, Eureka, Zuul, Collection, Starship и HAProxy,
+а также Caddy → Zuul работают по HTTPS с проверкой CA и имени сервера.
+PostgreSQL и JDBC URL не изменены. Внешний фронтенд на хосте :3000 остаётся HTTP-upstream.
+
+```bash
+python3 scripts/prepare-tls.py
+docker compose up --build -d
+curl --cacert certs/ca/root-ca.crt https://localhost/api/starship-service/starships
+```
+
+Caddy доступен на `https://localhost`, gateway — `https://localhost:8080`,
+Eureka — `https://localhost:8761`, Config Server — `https://localhost:8888`.
+Caddy перенаправляет HTTP на HTTPS. Для браузера импортируйте `certs/ca/root-ca.crt`
+в доверенные центры сертификации вашей системы/браузера.
+
+Сертификаты подключаются с хоста, не включаются в Docker-образы и Git.
+Скрипт подготовки создаёт пароль TLS-хранилищ в `.env`, если он ещё не задан.
+После перевыпуска сертификатов повторите подготовку и пересоздайте контейнеры.
+Подробности и сроки действия: [certs/README.md](certs/README.md).
+
+Примеры HTTP и схемы ниже описывают локальный запуск и прежнюю архитектуру;
+для текущего Compose используйте HTTPS-адреса выше.
+
+
 [Схемы архитектуры и объяснение Spring Cloud Config](docs/architecture.html) — автономная HTML-страница;
 скачайте или откройте файл в браузере. Включает связи компонентов, шаги запуска и приоритеты настроек.
 

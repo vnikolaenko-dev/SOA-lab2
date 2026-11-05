@@ -1,0 +1,5 @@
+# Keep documentation and directory placeholders; exclude all certificate material.
+*
+!*/
+!.gitignore
+!.gitkeep
