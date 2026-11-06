@@ -2,7 +2,7 @@ x-java-tls-environment: &java-tls-environment
   SERVER_SSL_ENABLED: 'true'
   SERVER_SSL_KEY_STORE: file:/certs/service/keystore.p12
   SERVER_SSL_KEY_STORE_TYPE: PKCS12
-  SERVER_SSL_KEY_STORE_PASSWORD: ${TLS_STORE_PASSWORD:?Run python3 scripts/prepare-tls.py first}
+  SERVER_SSL_KEY_STORE_PASSWORD: ${TLS_STORE_PASSWORD:?Setup TLS_STORE_PASSWORD}
   SERVER_FORWARD_HEADERS_STRATEGY: framework
   JDK_JAVA_OPTIONS: '@/certs/ca/java-tls.options'
 
