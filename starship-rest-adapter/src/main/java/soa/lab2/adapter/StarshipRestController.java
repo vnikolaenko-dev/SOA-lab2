@@ -14,7 +14,6 @@ import soa.lab2.starship.dto.SpaceMarineDTO;
 import soa.lab2.starship.soap.StarshipFault;
 import soa.lab2.starship.soap.StarshipSoapPort;
 
-/** Protocol adapter only: all domain decisions belong to the SOAP service. */
 @RestController
 @RequestMapping(value = "/api/v1", produces = "application/json")
 public class StarshipRestController {

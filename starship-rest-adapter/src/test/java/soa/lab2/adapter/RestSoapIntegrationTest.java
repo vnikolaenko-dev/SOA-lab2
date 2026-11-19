@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/** Exercises real HTTP REST -> CXF SOAP/XML -> a SOAP endpoint, including faults. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class RestSoapIntegrationTest {
     private static final StarshipSoapPort SOAP = mock(StarshipSoapPort.class);

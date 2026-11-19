@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 
-// Run against the real gateway -> adapter -> SOAP -> collection -> PostgreSQL.
 const gateway = process.env.TEST_GATEWAY_URL ?? 'http://localhost:18080';
 const soapUrl = process.env.TEST_SOAP_URL ?? 'http://localhost:8082/services/starships';
 const rest = `${gateway}/api/starship-service`;
