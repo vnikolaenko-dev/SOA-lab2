@@ -47,6 +47,8 @@ public class CollectionClient {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Сервис коллекции вернул ошибку");
         } catch (RestClientException ex) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Сервис коллекции недоступен");
+        } catch (IllegalArgumentException | java.time.DateTimeException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Invalid collection service response", ex);
         }
     }
 }

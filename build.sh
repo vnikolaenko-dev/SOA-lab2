@@ -2,13 +2,11 @@
 
 set -eu
 
-rm -rf dist
 mkdir -p dist
 
-mvn -B -f collection-service/pom.xml -DskipTests package
-mvn -B -f starship-service/pom.xml -DskipTests package
-mvn -B -f api-gateway/pom.xml -DskipTests package
+./mvnw -B package
 
 cp collection-service/target/*.war dist/
 cp starship-service/target/starship-service-1.0.0.jar dist/
+cp starship-rest-adapter/target/starship-rest-adapter-1.0.0.jar dist/
 cp api-gateway/target/api-gateway-1.0.0.jar dist/

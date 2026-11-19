@@ -1,6 +1,9 @@
 FROM maven:3.9-eclipse-temurin-21 AS build
 
 WORKDIR /build
+COPY starship-contract/pom.xml starship-contract/pom.xml
+COPY starship-contract/src/ starship-contract/src/
+RUN mvn -B -f starship-contract/pom.xml -DskipTests install
 COPY starship-service/pom.xml starship-service/pom.xml
 RUN mvn -B -f starship-service/pom.xml dependency:go-offline
 

@@ -15,7 +15,7 @@ services:
       <<: *java-tls-environment
       CONFIG_SERVER_URL: https://config-server:8888
       EUREKA_URL: https://eureka-server:8761/eureka/
-      STARSHIP_URL: https://haproxy:8082
+      STARSHIP_URL: https://starship-rest-adapter:8083
       UPSTREAM_TLS: 'true'
       EUREKA_INSTANCE_HOSTNAME: api-gateway
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'false'
@@ -143,6 +143,23 @@ services:
       db:
         condition: service_healthy
       collection-service:
+        condition: service_started
+    restart: on-failure
+
+  starship-rest-adapter:
+    build:
+      context: .
+      dockerfile: starship-rest-adapter/Dockerfile
+    environment:
+      <<: *java-tls-environment
+      STARSHIP_SOAP_URL: https://haproxy:8082/services/starships
+    volumes:
+      - ./certs/starship-rest-adapter:/certs/service:ro
+      - ./certs/ca:/certs/ca:ro
+    expose:
+      - "8083"
+    depends_on:
+      haproxy:
         condition: service_started
     restart: on-failure
 

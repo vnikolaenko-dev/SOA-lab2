@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Starship · Переход на SOAP</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b1220;--panel:#131e30;--line:#2a3b52;--ink:#e7edf7;--muted:#a9b8ce;--accent:#80ddc3}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 system-ui,sans-serif}a{color:var(--accent);text-underline-offset:4px}main,header,footer{max-width:1120px;margin:auto;padding:32px 28px}header{padding-top:64px;padding-bottom:20px}.eyebrow{letter-spacing:.15em;font-size:12px;text-transform:uppercase;color:var(--accent)}h1{font-size:clamp(36px,6vw,64px);line-height:1.12;letter-spacing:-.04em;margin:20px 0}h2{font-size:28px;margin:0 0 16px;line-height:1.3}h3{font-size:18px;margin:0 0 10px}p{margin:10px 0 16px}.lead{max-width:790px;font-size:20px;color:var(--muted)}nav{display:flex;gap:20px;flex-wrap:wrap;margin-top:28px}nav a{font-size:14px}.badge{display:inline-block;border:1px solid var(--line);border-radius:30px;padding:3px 12px;font-size:13px;color:var(--accent)}section{margin-bottom:56px;scroll-margin-top:24px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px}.card p:last-child{margin-bottom:0}.muted{color:var(--muted)}code{font:13px/1.6 ui-monospace,Consolas,monospace;overflow-wrap:anywhere}p code,td code,li code{color:#b8d8ff}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#09111e;border:1px solid var(--line);border-radius:12px;padding:20px;line-height:1.65;font-size:13px}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:500}td:first-child{min-width:180px}.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:12px;align-items:center;margin:24px 0}.node{border:1px solid var(--line);border-radius:14px;padding:20px;background:var(--panel);text-align:center}.node strong{display:block}.node small{color:var(--muted)}.arrow{color:var(--accent)}.branch{border-left:2px solid var(--accent);padding:8px 20px;margin:12px 0 24px}.tabs{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0 16px}button{font:inherit;color:var(--ink);border:1px solid var(--line);background:var(--panel);padding:10px 18px;border-radius:10px;cursor:pointer}button[aria-selected=true]{background:var(--accent);color:#071b1a;border-color:var(--accent)}button:focus-visible,a:focus-visible{outline:3px solid #a9c9ff;outline-offset:4px}[hidden]{display:none!important}.step-number{color:var(--accent);font:13px ui-monospace,monospace}.ok{color:var(--accent)}.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}ol,ul{padding-left:22px}li{margin:8px 0}.note{background:#172538;border-left:3px solid #8bb9ff;padding:16px 20px;border-radius:0 10px 10px 0}footer{border-top:1px solid var(--line);font-size:13px;color:var(--muted);padding-bottom:48px}@media(max-width:760px){.grid,.two{grid-template-columns:1fr}.flow{grid-template-columns:1fr}.arrow{text-align:center;transform:rotate(90deg)}header{padding-top:36px}main,header,footer{padding-left:20px;padding-right:20px}td,th{padding:10px}}@media print{body{background:white;color:#142034}header{padding-top:0}.card,.node,pre,.note{background:#f5f7fa;color:#142034}a,.ok,.eyebrow,.badge{color:#17624e}section{break-inside:avoid}nav,.tabs{display:none}[role=tabpanel][hidden]{display:block!important}button{display:none}footer{color:#526070}}
+  </style>
+</head>
+<body>
+<header>
+  <span class="eyebrow">Сервис-ориентированная архитектура · Лабораторная работа</span>
+  <h1>SOAP внутри.<br>Прежний REST для клиента.</h1>
+  <p class="lead">Второй, вызывающий сервис переведён на SOAP 1.1. Отдельный REST-адаптер сохраняет четыре операции, адреса и JSON-ответы существующего приложения.</p>
+  <span class="badge">Java 21</span> <span class="badge">Spring Boot 3.5.16</span> <span class="badge">Apache CXF 4.1.4</span>
+  <nav aria-label="Разделы"><a href="#architecture">Архитектура</a><a href="#changes">Изменения</a><a href="#protocol">Обмен сообщениями</a><a href="#errors">Ошибки</a><a href="#run">Запуск</a><a href="#tests">Проверки</a></nav>
+</header>
+<main>
+  <section id="architecture">
+    <h2>Где проходит граница ответственности</h2>
+    <div class="flow" aria-label="Клиент через gateway обращается по REST к адаптеру, адаптер по SOAP обращается к Starship">
+      <div class="node"><strong>Клиент + gateway</strong><small>Прежние URL и JSON</small></div><div class="arrow">→</div>
+      <div class="node"><strong>REST-адаптер · 8083</strong><small>HTTP ↔ SOAP</small></div><div class="arrow">→</div>
+      <div class="node"><strong>Starship · 8082</strong><small>SOAP + бизнес-логика</small></div>
+    </div>
+    <div class="branch"><strong>Дальше из Starship:</strong> REST-вызовы <code>collection-service:8081/api/v1</code> для получения десантников и PostgreSQL, схема <code>starship</code>, для записей о посадке. Первый сервис использует собственную схему <code>collection</code>.</div>
+    <p>Адаптер переносит параметры в вызов SOAP и возвращает полученный DTO. Он не фильтрует экипаж, не рассчитывает страницы, не проверяет существование десантников и не работает с базой. Проверка диапазонов и все решения о посадке остаются в SOAP-сервисе. Разбор HTTP-параметров и перевод ошибок относятся к преобразованию протокола.</p>
+    <p class="muted">В Docker между адаптером и двумя экземплярами SOAP-сервиса остаётся HAProxy. Его health check теперь обращается к WSDL, поскольку старого REST-адреса у SOAP-сервиса больше нет.</p>
+  </section>
+  <section id="changes">
+    <h2>Что изменено в проекте</h2>
+    <div class="grid">
+      <article class="card"><span class="step-number">01 / КОНТРАКТ</span><h3>starship-contract</h3><p>Общий JAR: интерфейс <code>StarshipSoapPort</code>, JAXB DTO и <code>StarshipFault</code>. Одинаковые типы используются сервером и SOAP-клиентом.</p></article>
+      <article class="card"><span class="step-number">02 / СЕРВИС</span><h3>starship-service</h3><p>REST-контроллеры и генерация REST API удалены. <code>StarshipSoapEndpoint</code> вызывает прежние command/query-сервисы. CXF публикует SOAP endpoint и WSDL.</p></article>
+      <article class="card"><span class="step-number">03 / СОВМЕСТИМОСТЬ</span><h3>starship-rest-adapter</h3><p>Самостоятельное приложение без БД. <code>StarshipRestController</code> вызывает SOAP-прокси CXF. Gateway направляет прежние маршруты в адаптер.</p></article>
+    </div>
+    <p>В корневой Maven-сборке добавлены оба новых модуля и удалена ссылка на отсутствовавший <code>api-gateway-2</code>. Dockerfile собирают общий контракт перед зависимыми сервисами. Исходники фронтенда не менялись.</p>
+    <div class="table-wrap"><table><thead><tr><th>Старый REST, сохранён в адаптере</th><th>Операция SOAP</th><th>Результат</th></tr></thead><tbody>
+      <tr><td><code>GET /api/v1/starships</code></td><td><code>getStarships(page, size)</code></td><td>Страница кораблей</td></tr>
+      <tr><td><code>GET /api/v1/starship/{id}/space-marines</code></td><td><code>getStarshipSpaceMarines(id, page, size, filter)</code></td><td>Страница экипажа</td></tr>
+      <tr><td><code>POST /api/v1/starship/{id}/load/{marineId}</code></td><td><code>loadSpaceMarine(id, marineId)</code></td><td>Объект десантника</td></tr>
+      <tr><td><code>POST /api/v1/starship/{id}/unload-all</code></td><td><code>unloadAll(id)</code></td><td>Число высаженных</td></tr>
+    </tbody></table></div>
+    <p class="muted">Через gateway доступны оба прежних способа адресации: <code>/api/starship-service/starships</code> и <code>/starship-service/api/v1/starships</code>.</p>
+  </section>
+  <section id="protocol">
+    <h2>Один запрос на трёх уровнях</h2>
+    <p>Нажмите на этап, чтобы увидеть, как посадка десантника превращается в SOAP-вызов и возвращается клиенту.</p>
+    <div class="tabs" role="tablist" aria-label="Этапы запроса">
+      <button id="tab-rest" role="tab" aria-selected="true" aria-controls="panel-rest" data-panel="rest">1. REST-запрос</button>
+      <button id="tab-soap" role="tab" aria-selected="false" aria-controls="panel-soap" data-panel="soap" tabindex="-1">2. SOAP-сообщение</button>
+      <button id="tab-json" role="tab" aria-selected="false" aria-controls="panel-json" data-panel="json" tabindex="-1">3. Ответ клиенту</button>
+    </div>
+    <div id="panel-rest" role="tabpanel" aria-labelledby="tab-rest"><pre><code>POST /api/starship-service/starship/42/load/7 HTTP/1.1
+Host: localhost:18080
+Accept: application/json</code></pre><p>Gateway добавляет внутренний префикс <code>/api/v1</code> и передаёт запрос адаптеру. Контроллер вызывает <code>soap.loadSpaceMarine(42, 7)</code>.</p></div>
+    <div id="panel-soap" role="tabpanel" aria-labelledby="tab-soap" hidden><pre><code>POST /services/starships HTTP/1.1
+Content-Type: text/xml; charset=utf-8
+
+&lt;s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
+            xmlns:t="urn:soa:starship:v1"&gt;
+  &lt;s:Body&gt;
+    &lt;t:loadSpaceMarine&gt;
+      &lt;starshipId&gt;42&lt;/starshipId&gt;
+      &lt;spaceMarineId&gt;7&lt;/spaceMarineId&gt;
+    &lt;/t:loadSpaceMarine&gt;
+  &lt;/s:Body&gt;
+&lt;/s:Envelope&gt;</code></pre><p>CXF выполняет сериализацию XML. На сервере метод endpoint проверяет ID и вызывает <code>StarshipCommandService.load</code>. Этот сервис получает десантника через первый REST-сервис и записывает посадку в БД.</p></div>
+    <div id="panel-json" role="tabpanel" aria-labelledby="tab-json" hidden><pre><code>HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "id": 7,
+  "name": "Marine",
+  "coordinates": { "x": 12.5, "y": 7 },
+  "creationDate": "2026-11-19T12:00:00Z",
+  "health": 80,
+  "achievements": null,
+  "weaponType": "COMBI_FLAMER",
+  "meleeWeapon": null,
+  "chapter": { "name": "Integration", "parentLegion": null, "world": "Terra" }
+}</code></pre><p>Пример ответа. Адаптер десериализует SOAP в общий DTO, после чего Jackson формирует прежний JSON. Формат даты с секундами, nullable-поля и пустые массивы сохранены для существующих клиентских схем.</p></div>
+    <div class="note"><strong>Зачем WSDL?</strong> <a href="http://localhost:8082/services/starships?wsdl">Описание сервиса</a> содержит четыре операции, типы XML, binding SOAP 1.1 и описание fault. Контракт создаётся CXF из JAX-WS интерфейса (code-first). DTO используют JAXB; даты и значения оружия представлены строками, их допустимость проверяет логика сервиса.</div>
+    <p class="muted">Публикация endpoint через <code>EndpointImpl</code> и путь CXF следуют <a href="https://cxf.apache.org/docs/springboot.html">официальной документации Apache CXF</a>.</p>
+  </section>
+  <section id="errors">
+    <h2>Ошибки без изменения клиентского контракта</h2>
+    <p>При ошибке SOAP-сервис возвращает <code>SOAP Fault</code> с деталями <code>status</code>, <code>message</code>, <code>field</code>. Ответ SOAP Fault обычно имеет транспортный HTTP-статус 500. Адаптер берёт прикладной статус из detail и возвращает соответствующий REST-ответ.</p>
+    <div class="two"><div><pre><code>SOAP Fault detail:
+{
+  status: 409,
+  message: "Десантник уже на корабле",
+  field: null
+}</code></pre></div><div><pre><code>HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"status":409,
+ "message":"Десантник уже на корабле",
+ "field":null}</code></pre></div></div>
+    <div class="table-wrap"><table><thead><tr><th>Ситуация</th><th>Ответ REST</th><th>Где принято решение</th></tr></thead><tbody>
+      <tr><td>Неверный ID, диапазон страницы, фильтр</td><td>400</td><td>SOAP-сервис</td></tr>
+      <tr><td>Десантник отсутствует</td><td>404</td><td>SOAP-сервис / первый сервис</td></tr>
+      <tr><td>Десантник уже находится на корабле</td><td>409</td><td>SOAP-сервис и ограничение уникальности БД</td></tr>
+      <tr><td>SOAP недоступен / транспортный сбой</td><td>503</td><td>Перевод транспортной ошибки в адаптере</td></tr>
+      <tr><td>Неописанный SOAP Fault</td><td>502</td><td>Перевод протокольной ошибки в адаптере</td></tr>
+      <tr><td>HTTP-параметр не является числом / неверный HTTP-метод</td><td>400 / 405</td><td>HTTP-слой Spring MVC</td></tr>
+    </tbody></table></div>
+    <p>Пустой корабль по-прежнему возвращает <code>content: []</code>, повторная высадка — <code>0</code>. Повторяющиеся параметры <code>filter</code> передаются целиком: запятые внутри значений не разбивают одно условие на несколько.</p>
+  </section>
+  <section id="run">
+    <h2>Как запустить и повторить проверку</h2>
+    <p>Локальный режим использует HTTP и отдельную PostgreSQL в Docker на порту 55432. Нужны JDK 21, Docker и Node.js. Maven запускается через wrapper из репозитория.</p>
+    <pre><code># PowerShell, из корня проекта
+# Первый запуск: установить зависимости неизменённого фронтенда
+cd soa-front
+npx --yes pnpm@10 install --frozen-lockfile
+cd ..
+
+# Чистая сборка с тестами + запуск всех Java-сервисов и фронтенда
+.\scripts\start-local.ps1 -WithFrontend
+
+# Проверить настоящую цепочку gateway → REST → SOAP → REST → PostgreSQL
+node scripts/test-e2e.mjs
+
+# Дополнительно проверить ответы по исходным Zod-схемам фронтенда (Node 22.6+)
+node --experimental-strip-types scripts/test-e2e.mjs --client-schemas
+
+# Остановить процессы проекта и локальную БД (данные сохраняются)
+.\scripts\stop-local.ps1</code></pre>
+    <p>Если проект уже собран, используйте <code>-SkipBuild</code>. Логи и PID-файлы находятся в <code>.local-run/</code>; результаты сквозной проверки — в <code>.local-run/e2e-results.json</code>. Эти файлы исключены из Git.</p>
+    <div class="table-wrap"><table><thead><tr><th>Компонент</th><th>Адрес локального режима</th></tr></thead><tbody>
+      <tr><td>Клиент</td><td><a href="http://localhost:3000/">localhost:3000</a></td></tr>
+      <tr><td>REST через gateway</td><td><a href="http://localhost:18080/api/starship-service/starships">localhost:18080/api/starship-service/starships</a></td></tr>
+      <tr><td>REST напрямую</td><td><a href="http://localhost:8083/api/v1/starships">localhost:8083/api/v1/starships</a></td></tr>
+      <tr><td>SOAP WSDL</td><td><a href="http://localhost:8082/services/starships?wsdl">localhost:8082/services/starships?wsdl</a></td></tr>
+      <tr><td>Config / Eureka / Collection</td><td>8888 / 8761 / 8081</td></tr>
+    </tbody></table></div>
+    <p class="muted">Основной <code>compose.yaml</code> сохраняет HTTPS и требует имеющиеся в конфигурации переменные паролей и сертификаты. Для нового адаптера добавлен каталог <code>certs/starship-rest-adapter</code>: сертификат должен содержать DNS-имя <code>starship-rest-adapter</code>. Локальная проверка HTTP не подтверждает работоспособность TLS-развёртывания.</p>
+  </section>
+  <section id="tests">
+    <h2>Что проверено</h2>
+    <div class="grid">
+      <article class="card"><span class="badge">4 теста</span><h3>SOAP HTTP</h3><p>Реальный Tomcat и CXF: WSDL, четыре операции, XML DTO, даты с нулевыми секундами, пустые коллекции, валидация и типизированные ошибки. Бизнес-сервисы заменены тестовыми объектами.</p></article>
+      <article class="card"><span class="badge">9 тестов</span><h3>REST → SOAP HTTP</h3><p>Реальные HTTP-вызовы на обоих участках: совместимость JSON, повторные фильтры, 400/405/409, недоступный SOAP (503), неизвестный Fault (502). SOAP-реализация тестовая.</p></article>
+      <article class="card"><span class="badge" id="e2e-count">26 проверок · все пройдены</span><h3>Вся цепочка</h3><p id="e2e-result">19.11.2026: реальные gateway → REST-адаптер → SOAP-сервис → collection-service → PostgreSQL. Посадка, конфликт 409, экипаж, фильтры с запятыми, пагинация, высадка, WSDL и ошибки прошли проверку, включая исходные Zod-схемы клиента.</p></article>
+    </div>
+    <p>По запросу выполнена работа трёх агентов: SOAP-реализация, REST-адаптер и независимая проверка кода. Проверялись границы бизнес-логики, совместимость клиента, сериализация XML/JSON и конфигурация маршрутов.</p>
+    <p class="muted" id="verification-note">Команда повторной проверки сборки: <code>.\mvnw.cmd -B clean package</code>. Сквозные тесты создают два временных объекта, проверяют посадку/экипаж/фильтры/высадку и удаляют свои тестовые данные.</p>
+    <p class="muted">Фронтенд успешно собран; HTTP-запросы к <code>/</code>, <code>/starships</code> и <code>/space-marines</code> вернули 200. Визуальная проверка браузером не завершена: механизм Computer Use не смог достоверно определить текущий URL Chrome. Для HTML проверены ссылки на разделы, уникальность ID, ARIA-связи и синтаксис JavaScript.</p>
+  </section>
+</main>
+<footer>Starship SOAP migration · Документация проекта · 19 ноября 2026<br>Самодостаточная HTML-страница: без внешних шрифтов, библиотек и сетевых зависимостей для отображения.</footer>
+<script>
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  function activate(tab) {
+    for (const item of tabs) {
+      const selected = item === tab;
+      item.setAttribute('aria-selected', String(selected)); item.tabIndex = selected ? 0 : -1;
+      document.getElementById(item.getAttribute('aria-controls')).hidden = !selected;
+    }
+  }
+  for (const tab of tabs) {
+    tab.addEventListener('click', () => activate(tab));
+    tab.addEventListener('keydown', event => {
+      let index = tabs.indexOf(tab);
+      if (event.key === 'ArrowRight') index = (index + 1) % tabs.length;
+      else if (event.key === 'ArrowLeft') index = (index + tabs.length - 1) % tabs.length;
+      else if (event.key === 'Home') index = 0;
+      else if (event.key === 'End') index = tabs.length - 1;
+      else return;
+      event.preventDefault(); activate(tabs[index]); tabs[index].focus();
+    });
+  }
+</script>
+</body>
+</html>

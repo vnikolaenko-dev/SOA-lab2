@@ -8,8 +8,9 @@
         <module>config-server</module>
         <module>eureka-server</module>
         <module>api-gateway</module>
-        <module>api-gateway-2</module>
         <module>collection-service</module>
+        <module>starship-contract</module>
         <module>starship-service</module>
+        <module>starship-rest-adapter</module>
     </modules>
 </project>

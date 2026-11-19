@@ -9,3 +9,5 @@ discovery-verification.log
 discovery-client-verification.log
 dist
 .pnpm-store/
+.local-run/
+soa-front/node_modules/
