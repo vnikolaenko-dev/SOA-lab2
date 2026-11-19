@@ -8,3 +8,4 @@ config-verification.log
 discovery-verification.log
 discovery-client-verification.log
 dist
+.pnpm-store/

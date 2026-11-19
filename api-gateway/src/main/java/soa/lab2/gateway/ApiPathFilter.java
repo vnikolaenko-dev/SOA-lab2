@@ -5,7 +5,6 @@ import com.netflix.zuul.context.RequestContext;
 import org.springframework.cloud.netflix.zuul.filters.support.FilterConstants;
 import org.springframework.stereotype.Component;
 
-/** Preserves the public API paths previously handled by Caddy. */
 @Component
 public class ApiPathFilter extends ZuulFilter {
     @Override

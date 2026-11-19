@@ -8,3 +8,8 @@
 *.iml
 *.log
 dist
+certs/
+**/node_modules
+**/.pnpm-store
+**/.tanstack
+**/dist

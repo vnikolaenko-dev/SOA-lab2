@@ -9,7 +9,6 @@ import soa.lab2.collection.model.SpaceMarine;
 
 import java.util.Optional;
 
-/** Доступ к коллекции для запросов: операции изменения данных отсутствуют. */
 @NoRepositoryBean
 public interface SpaceMarineQueryRepository extends Repository<SpaceMarine, Long> {
     Optional<SpaceMarine> findById(Long id);

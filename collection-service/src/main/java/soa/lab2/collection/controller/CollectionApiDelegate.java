@@ -29,7 +29,8 @@ public class CollectionApiDelegate implements SpaceMarinesCollectionApiDelegate 
     private final SpaceMarineMapper mapper;
     private final HttpServletRequest request;
 
-    public CollectionApiDelegate(CollectionCommandService commands, CollectionQueryService queries, SpaceMarineMapper mapper, HttpServletRequest request) {
+    public CollectionApiDelegate(CollectionCommandService commands, CollectionQueryService queries,
+            SpaceMarineMapper mapper, HttpServletRequest request) {
         this.commands = commands;
         this.queries = queries;
         this.mapper = mapper;
@@ -85,8 +86,7 @@ public class CollectionApiDelegate implements SpaceMarinesCollectionApiDelegate 
 
     @Override
     public ResponseEntity<PageOfSpaceMarineDTO> getSpaceMarines(Integer page, Integer size,
-                                                                List<String> sort, List<String> filter) {
-        // Конвертер List в Spring разделяет значения по запятым; form/explode требует исходные значения параметров.
+            List<String> sort, List<String> filter) {
         String[] rawSort = request.getParameterValues("sort");
         String[] rawFilter = request.getParameterValues("filter");
         var result = queries.list(page, size, rawSort == null ? null : Arrays.asList(rawSort),

@@ -9,5 +9,6 @@ RUN mvn -B -f starship-service/pom.xml -DskipTests package
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /build/starship-service/target/starship-service-1.0.0.war app.war
-ENTRYPOINT ["java", "-jar", "/app/app.war"]
+COPY --from=build /build/starship-service/target/starship-service-1.0.0.jar app.jar
+EXPOSE 8082
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

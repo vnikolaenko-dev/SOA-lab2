@@ -1,0 +1,10 @@
+.git
+.idea
+.vscode
+.pnpm-store
+node_modules
+dist
+.env
+.env.*
+*.log
+.DS_Store
